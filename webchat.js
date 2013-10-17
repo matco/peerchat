@@ -16,11 +16,13 @@ function guid() {
 
 var user;
 var socket;
+var users = [];
 var calls = [];
 
 window.addEventListener(
 	'unload',
 	function() {
+		//save user
 		sessionStorage.setObject('user', user);
 	}
 );
@@ -36,14 +38,58 @@ window.addEventListener(
 		else {
 			user = {id : guid(), name : ''};
 		}
+		users.push(user);
 
 		//fill username
 		document.getElementById('connect')['username'].value = user.name;
 
 		function get_username(user_id) {
-			return document.getElementById('users').children.find(function(child) {
-					return child.user.id === user_id;
-			}).user.name;
+			return users.find(Array.objectFilter({id : user_id})).name
+		}
+
+		function dragover(event) {
+			Event.stop(event);
+			this.style.backgroundColor = '#ddd';
+		}
+
+		function dragend(event) {
+			Event.stop(event);
+			this.style.backgroundColor = '';
+		}
+
+		function drop(event) {
+			event.preventDefault();
+			//only one file can be managed at a time
+			if(event.dataTransfer.files.length > 1) {
+				compare_error.textContent = 'Please drop only one file';
+				compare_error.style.display = 'block';
+			}
+			else {
+				var reader = new FileReader();
+				reader.onloadstart = function() {
+					//UI.StartLoading();
+				};
+				reader.onerror = function() {
+					compare_error.textContent = 'Error while loading ' + file.name;
+					compare_error.style.display = 'block';
+				};
+				reader.onload = function(reader_event) {
+					this.call.channel.send(reader_event.target.result);
+				};
+				reader.onloadend = function() {
+					//UI.StopLoading();
+				};
+				reader.readAsBlob(event.dataTransfer.files[0]);
+			}
+		}
+
+		function draw_message(user_id, time, message) {
+			var message_ui = document.createFullElement('li');
+			var message_date_text = time.getHours().pad(2) + ':' + time.getMinutes().pad(2) + ':' + time.getSeconds().pad(2)
+			message_ui.appendChild(document.createFullElement('time', {}, message_date_text));
+			message_ui.appendChild(document.createFullElement('span', {'class' : 'user'}, get_username(user_id)));
+			message_ui.appendChild(document.createFullElement('span', {'class' : 'message'}, message));
+			return message_ui;
 		}
 
 		function create_call_ui(call) {
@@ -57,12 +103,20 @@ window.addEventListener(
 				'submit',
 				function(event) {
 					Event.stop(event);
-					call.channel.send(this.message.value);
+					var message = this.message.value;
+					call.channel.send(message);
+					var message_ui = draw_message(user.id, new Date(), message);
+					call_ui.querySelector('[data-binding="user-messages"]').appendChild(message_ui);
 					this.message.value = '';
 				}
 			);
-			call_ui.style.display = 'block';
+			//manage file drop
+			call_ui.addEventListener('dragover', dragover);
+			call_ui.addEventListener('dragend', dragend);
+			call_ui.addEventListener('drop', drop);
+			//display call ui
 			document.body.appendChild(call_ui);
+			call_ui.style.display = 'block';
 		}
 
 		function user_call() {
@@ -167,19 +221,22 @@ window.addEventListener(
 					else if(signal.type === 'connection') {
 						//all current users
 						if(signal.hasOwnProperty('users')) {
+							users.pushAll(signal.users);
 							signal.users.map(create_user).forEach(Node.prototype.appendChild, document.getElementById('users'));
 							document.getElementById('disconnect').style.display = 'inline';
 						}
 						else if(signal.hasOwnProperty('user')) {
-							var users = document.getElementById('users');
+							var users_ui = document.getElementById('users');
 							//arriving user
 							if(signal.action === 'login') {
-								users.appendChild(create_user(signal.user));
+								users.push(signal.user);
+								users_ui.appendChild(create_user(signal.user));
 							}
 							//leaving user
 							else {
-								var child = users.children.find(function(child) {return child.user.id === signal.user.id});
-								users.removeChild(child);
+								users.removeElement(signal.user);
+								var child = users_ui.children.find(function(child) {return child.user.id === signal.user.id});
+								users_ui.removeChild(child);
 							}
 						}
 					}
@@ -381,7 +438,8 @@ window.addEventListener(
 			};
 			call.channel.onmessage = function(event) {
 				console.log('channel data', event);
-				document.getElementById(call.id).appendChild(document.createFullElement('li', {}, new Date(event.timeStamp).toFullDisplay() + ' ' + event.data));
+				var message_ui = draw_message(call.recipient, new Date(event.timeStamp), event.data);
+				document.getElementById(call.id).querySelector('[data-binding="user-messages"]').appendChild(message_ui);
 			};
 			call.channel.onclose = function(event) {
 				console.log('channel close', event);

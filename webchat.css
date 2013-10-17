@@ -13,6 +13,11 @@ p {
 	margin: 0;
 	padding: 5px;
 }
+ul {
+	list-style-type: none;
+	margin: 0;
+	padding: 2px;
+}
 button {
 	cursor: pointer;
 }
@@ -41,8 +46,8 @@ button {
 }
 .column {
 	float: left;
-	width: 200px;
-	min-height: 200px;
+	width: 300px;
+	min-height: 300px;
 	margin-right: 10px;
 	border: 2px solid #aaa;
 	padding-bottom: 30px;
@@ -65,6 +70,7 @@ button {
 .column_footer input {
 	width: 100px;
 }
+/* contact column */
 #users {
 	margin: 0;
 	padding: 0;
@@ -79,4 +85,20 @@ button {
 }
 #connect > input {
 	width: 100px;
+}
+/* calls columns */
+
+.messages > li > time {
+	font-size: 8px;
+	color: #bbb;
+}
+.messages > li > span.user {
+	font-size: 8px;
+	color: #888;
+	margin-left: 5px;
+}
+.messages > li > span.message {
+	font-size: 10px;
+	color: #333;
+	margin-left: 5px;
 }
