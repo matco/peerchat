@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<link href="webchat.css" rel="stylesheet" type="text/css" title="defaut" />
+		<script type="text/javascript" src="webchat.js"></script>
+		<script type="text/javascript" src="extension.js"></script>
+		<script type="text/javascript" src="browser_extension.js"></script>
+		<title>Webchat</title>
+	</head>
+	<body>
+		<p id="error" class="notification"></p>
+		<p id="incoming_call"class="notification">
+			Incoming call from <span id="incoming_call_user"></span>
+			<button id="incoming_call_answer">Answer</button>
+			<button id="incoming_call_decline">Decline</button>
+		</p>
+		<div id="main" class="column">
+			<h2 class="column_header"><img id="status" src="images/bullet_red.png"/>Users</h2>
+			<ul id="users"></ul>
+			<div class="column_footer">
+				<form id="connect">
+					<input type="text" name="username" placeholder="username" required="required" />
+					<button type="submit">Connect</button>
+				</form>
+				<span id="connecting" style="display: none;">Connecting</span>
+				<button id="disconnect" type="button" style="display: none;">Disconnect</button>
+			</div>
+		</div>
+		<div id="call" class="column" style="display: none;">
+			<h2 data-binding="user-name" class="column_header"></h2>
+			<ul id="messages"></ul>
+			<form class="column_footer">
+				<input name="message" />
+				<button type="submit" disabled="disabled">Send</button>
+			</form>
+		</div>
+	</body>
+</html>

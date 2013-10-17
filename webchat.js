@@ -198,7 +198,7 @@ window.addEventListener(
 					//update ui
 					document.getElementById('connecting').style.display = 'none';
 					document.getElementById('disconnect').style.display = 'inline';
-					document.getElementById('status').src = 'bullet_green.png';
+					document.getElementById('status').src = 'images/bullet_green.png';
 				}
 			);
 
@@ -230,7 +230,7 @@ window.addEventListener(
 			function() {
 				socket.close();
 				document.getElementById('users').clear();
-				document.getElementById('status').src = 'bullet_red.png';
+				document.getElementById('status').src = 'images/bullet_red.png';
 				this.style.display = 'none';
 				document.getElementById('connect').style.display = 'inline';
 			}

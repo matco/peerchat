@@ -1,0 +1,82 @@
+body {
+	font-family: Verdana;
+}
+h2 {
+	margin: 0;
+	padding: 5px;
+	border-bottom: 2px solid #aaa;
+}
+h2 > img {
+	vertical-align: bottom;
+}
+p {
+	margin: 0;
+	padding: 5px;
+}
+button {
+	cursor: pointer;
+}
+.notification {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	padding: 10px;
+	box-sizing: border-box;
+	z-index: 2;
+}
+.notification:empty {
+	display: none;
+}
+#error {
+	background-color: #F2DEDE;
+	border-bottom: 1px solid #EED3D7;
+	color: #B94A48;
+}
+#incoming_call {
+	background-color: #DFF0D8;
+	border-bottom: 1px solid #EED3D7;
+	color: #468847;
+	display: none;
+}
+.column {
+	float: left;
+	width: 200px;
+	min-height: 200px;
+	margin-right: 10px;
+	border: 2px solid #aaa;
+	padding-bottom: 30px;
+	position: relative;
+	border-radius: 3px;
+}
+.column_header {
+	background-color: #ddd;
+	font-size: 13px;
+}
+.column_footer {
+	position: absolute;
+	bottom: 0;
+	width: 100%;
+	height: 30px;
+	padding: 3px;
+	box-sizing: border-box;
+	background-color: #ddd;
+}
+.column_footer input {
+	width: 100px;
+}
+#users {
+	margin: 0;
+	padding: 0;
+	list-style-type: none;
+}
+#users > li {
+	cursor: pointer;
+	padding: 3px;
+}
+#users > li:hover {
+	background-color: #ddd;
+}
+#connect > input {
+	width: 100px;
+}
