@@ -10,12 +10,25 @@
 	</head>
 	<body>
 		<p id="error" class="notification"></p>
-		<p id="incoming_call"class="notification">
+		<p id="incoming_call" class="notification">
 			Incoming call from <span id="incoming_call_user"></span>
 			<button id="incoming_call_answer">Answer</button>
 			<button id="incoming_call_decline">Decline</button>
 		</p>
-		<div id="main" class="column">
+		<form id="server">
+			<p>
+				<label>
+					<span>Server</span><input name="server" type="text" list="servers" required="required" />
+					<datalist id="servers">
+						<option>ws://localhost:1337</option>
+						<option>ws://webchat-c9-matco.c9.io</option>
+					</datalist>
+				</label>
+			</p>
+			<button>Connect</button>
+		</form>
+
+		<div id="contacts" class="column" style="display: none;">
 			<h2 class="column_header"><img id="status" src="images/bullet_red.png"/>Users</h2>
 			<ul id="users"></ul>
 			<div class="column_footer">
@@ -27,6 +40,7 @@
 				<button id="disconnect" type="button" style="display: none;">Disconnect</button>
 			</div>
 		</div>
+
 		<div id="call" class="column" style="display: none;">
 			<h2 data-binding="user-name" class="column_header"></h2>
 			<ul data-binding="user-messages" class="messages"></ul>

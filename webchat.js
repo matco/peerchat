@@ -14,6 +14,7 @@ function guid() {
 	return uid;
 }
 
+var server;
 var user;
 var socket;
 var users = [];
@@ -152,7 +153,7 @@ window.addEventListener(
 
 		function connect_signalisation(user) {
 
-			socket = new WebSocket('ws://localhost:1337/');
+			socket = new WebSocket(server);
 			socket.addEventListener(
 				'message',
 				function(event) {
@@ -270,6 +271,16 @@ window.addEventListener(
 				this.send(JSON.stringify(message));
 			};
 		}
+
+		document.getElementById('server').addEventListener(
+			'submit',
+			function(event) {
+				Event.stop(event);
+				server = this['server'].value;
+				document.getElementById('contacts').style.display = 'block';
+				this.style.display = 'none';
+			}
+		);
 
 		document.getElementById('connect').addEventListener(
 			'submit',

@@ -1,6 +1,7 @@
-var websocket = require('websocket');
-var http = require('http');
+var ws = require('ws');
 var peers = [];
+
+var PORT = 1337;
 
 //prototype
 String.prototype.leftPad = function(length, pad) {
@@ -50,18 +51,8 @@ Date.prototype.toFullDisplay = function() {
 	return this.toDisplay() + ' ' + this.getHours().pad(2) + ':' + this.getMinutes().pad(2) + ':' + this.getSeconds().pad(2);
 };
 
-//create http server
-var server = http.createServer(function(request, response) {
-	//nothing to do over http
-});
-server.listen(1337, function() {
-	console.log('HTTP server listening on port 1337');
-});
-
 //create websocket server
-var wss = new websocket.server({
-	httpServer : server
-});
+var wss = new ws.Server({port : PORT});
 
 function send_callback(error) {
 	if(error) {
@@ -73,9 +64,8 @@ function get_peer(connection) {
 	return peers.find(function(peer) {return peer.connection === connection;});
 }
 
-wss.on('request', function(request) {
-	var connection = request.accept(null, request.origin);
-	console.log(new Date().toFullDisplay() + ' New peer from ' + connection.remoteAddress);
+wss.on('connection', function(connection) {
+	console.log(new Date().toFullDisplay() + ' New peer connected');
 
 	//add new peer to peers list
 	var peer = {
@@ -83,12 +73,11 @@ wss.on('request', function(request) {
 	}
 	peers.push(peer);
 
-	connection.on('message', function(message) {
-		//process message
-		console.log(new Date().toFullDisplay() + ' Message received ' + message.utf8Data);
-		//process only utf-8 message
-		if(message.type === 'utf8') {
-			var content = JSON.parse(message.utf8Data);
+	connection.on('message', function(message, flags) {
+		//process only text message
+		if(!flags.binary) {
+			console.log(new Date().toFullDisplay() + ' Message received ' + message);
+			var content = JSON.parse(message);
 			var other_peers = peers.filter(function(c) {return c.connection !== connection;});
 			//some messages need special handling
 			if(content.type === 'connection') {
@@ -98,7 +87,7 @@ wss.on('request', function(request) {
 				connection.send(JSON.stringify({type : 'connection', users : other_peers.map(function(peer) {return peer.user;})}));
 				//broadcast message to all connected peers
 				other_peers.forEach(function(c) {
-					c.connection.send(message.utf8Data, send_callback);
+					c.connection.send(message, send_callback);
 				});
 			}
 			else if(content.type === 'call') {
@@ -106,7 +95,7 @@ wss.on('request', function(request) {
 				other_peers.filter(function(peer) {
 					return peer.user.id === content.call.recipient || peer.user.id === content.call.caller;
 				}).forEach(function(target) {
-					target.connection.send(message.utf8Data, send_callback);
+					target.connection.send(message, send_callback);
 				});
 			}
 		}
