@@ -1,9 +1,11 @@
 var http = require('http');
 var ws = require('ws');
+var url = require('url');
+var fs = require('fs');
+var path = require('path');
 var peers = [];
 
-var PORT = 1337;
-//var PORT = process.env.PORT;
+var PORT = process.env.PORT || 1337;
 
 //prototype
 String.prototype.leftPad = function(length, pad) {
@@ -54,9 +56,48 @@ Date.prototype.toFullDisplay = function() {
 };
 
 //create http server
+var http_server = http.createServer(function(request, response) {
+	var href = url.parse(request.url, true);
 
-var http_server = http.createServer(function() {
-	//nothing to do here
+	var filename = href.pathname.substring(1);
+
+	if(!filename) {
+		response.statusCode = 301;
+		response.setHeader('Location', 'index.html');
+		response.end('Nothing here');
+	}
+
+	if(filename.match(/(\w|\.|\/)*/i)) {
+		fs.exists(filename, function(exists) {
+			if(exists) {
+				fs.stat(filename, function(error, stats) {
+					if(stats.isFile()) {
+						var stream = fs.createReadStream(filename);
+
+						var mime_types = {
+							'html' : 'text/html',
+							'png': 'image/png',
+							'js': 'text/javascript',
+							'css': 'text/css'
+						};
+						var mime_type = mime_types[path.extname(filename).substring(1)];
+
+						response.setHeader('Content-Type', mime_type);
+						response.statusCode = 200;
+						stream.pipe(response);
+					}
+					else {
+						response.statusCode = 403;
+						response.end(JSON.stringify({status : 'error', message : 'Only files can be requested'}));
+					}
+				});
+			}
+		});
+	}
+	else {
+		response.statusCode = 404;
+		response.end(JSON.stringify({status : 'error', message : 'File does not exists ' + filename}));
+	}
 }).listen(PORT);
 
 //create websocket server
