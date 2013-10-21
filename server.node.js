@@ -1,7 +1,9 @@
+var http = require('http');
 var ws = require('ws');
 var peers = [];
 
 var PORT = 1337;
+//var PORT = process.env.PORT;
 
 //prototype
 String.prototype.leftPad = function(length, pad) {
@@ -51,8 +53,14 @@ Date.prototype.toFullDisplay = function() {
 	return this.toDisplay() + ' ' + this.getHours().pad(2) + ':' + this.getMinutes().pad(2) + ':' + this.getSeconds().pad(2);
 };
 
+//create http server
+
+var http_server = http.createServer(function() {
+	//nothing to do here
+}).listen(PORT);
+
 //create websocket server
-var wss = new ws.Server({port : PORT});
+var websocket_server = new ws.Server({server : http_server});
 
 function send_callback(error) {
 	if(error) {
@@ -64,7 +72,7 @@ function get_peer(connection) {
 	return peers.find(function(peer) {return peer.connection === connection;});
 }
 
-wss.on('connection', function(connection) {
+websocket_server.on('connection', function(connection) {
 	console.log(new Date().toFullDisplay() + ' New peer connected');
 
 	//add new peer to peers list
