@@ -48,6 +48,10 @@ window.addEventListener(
 			return users.find(Array.objectFilter({id : user_id})).name
 		}
 
+		//fill server based on current url
+		var secure = window.location.protocol.contains('s');
+		document.getElementById('server')['server'].value = (secure ? 'wss://' : 'ws://') + window.location.host;
+
 		//manage UI helpers
 		var UI = {};
 
@@ -80,29 +84,90 @@ window.addEventListener(
 
 		function drop(event) {
 			event.preventDefault();
+			var that = this;
+			//TODO create a closure containing file
 			for(var i = 0; i < event.dataTransfer.files.length; i++) {
 				var file = event.dataTransfer.files[i];
-				this.call.channel.send(file);
-				//update ui
-				var message_ui = document.createFullElement('li');
-				var time = new Date();
-				var message_date_text = time.getHours().pad(2) + ':' + time.getMinutes().pad(2) + ':' + time.getSeconds().pad(2)
-				message_ui.appendChild(document.createFullElement('time', {}, message_date_text));
-				message_ui.appendChild(document.createFullElement('span', {'class' : 'user'}, 'You'));
-				message_ui.appendChild(document.createFullElement('span', {'class' : 'message'}, 'Sending file ' + file.name));
-				this.querySelector('[data-binding="user-messages"]').appendChild(message_ui);
+				//file must be read to be bundled inside a message
+				var reader = new FileReader();
+				reader.onloadstart = function() {
+					//UI.StartLoading();
+				};
+				reader.onerror = function() {
+					show_error('Error while loading ' + file.name);
+				};
+				reader.onload = function() {
+				};
+				reader.onloadend = function(reader_event) {
+					console.log(reader.result);
+					//UI.StopLoading();
+					//TODO missing a closure to retrieve file name
+					var message = {
+						emitter : user.id,
+						type : 'file',
+						filename : file.name,
+						filetype : file.type,
+						data : reader.result,
+						time : new Date().toString()
+					};
+					that.call.channel.send(JSON.stringify(message));
+					that.querySelector('[data-binding="user-messages"]').appendChild(draw_message(message));
+				};
+				reader.readAsBinaryString(file);
+				//reader.readAsText(file);
+				//reader.readAsArrayBuffer(file);
 			}
 			dragend.call(this);
 		}
+		//document.body.addEventListener('dragover', dragover);
+		//document.body.addEventListener('drop', drop);
 
 		function draw_message(message) {
 			var message_ui = document.createFullElement('li');
 			var time = new Date(message.time);
 			var message_date_text = time.getHours().pad(2) + ':' + time.getMinutes().pad(2) + ':' + time.getSeconds().pad(2)
 			message_ui.appendChild(document.createFullElement('time', {}, message_date_text));
-			var user_name = message.emitter === user.id ? 'You' : get_username(message.emitter);
+			var is_emitter = message.emitter === user.id;
+			var user_name = is_emitter ? 'You' : get_username(message.emitter);
 			message_ui.appendChild(document.createFullElement('span', {'class' : 'user'}, user_name));
-			message_ui.appendChild(document.createFullElement('span', {'class' : 'message'}, message.text));
+			//file message
+			if(message.type === 'file') {
+				if(is_emitter) {
+					message_ui.appendChild(document.createFullElement('span', {'class' : 'message'}, 'Sending file ' + message.filename));
+				}
+				else {
+					var reader = new FileReader();
+					reader.onloadstart = function() {
+						//UI.StartLoading();
+					};
+					reader.onerror = function() {
+						show_error('Error while loading ' + file.name);
+					};
+					reader.onload = function(reader_event) {
+						var link = reader.result;
+						var message_content = document.createFullElement('span', {'class' : 'message'});
+						if(message.filetype.contains('image')) {
+							var message_image = document.createFullElement('img', {src : link, alt : message.filename, title : message.filename});
+							message_content.appendChild(message_image);
+						}
+						else {
+							message_content.appendChild(document.createTextNode('Incoming file'));
+						}
+						var message_download_file = document.createFullElement('a', {href : link, download : message.filename, style : 'margin-left: 5px;'}, 'Download');
+						message_content.appendChild(message_download_file);
+						message_ui.appendChild(message_content);
+					};
+					reader.onloadend = function() {
+						//UI.StopLoading();
+					};
+					var bytes = Array.prototype.map.call(message.data, function(c) {return c.charCodeAt(0);});
+					reader.readAsDataURL(new Blob([new Uint8Array(bytes)], {type : message.filetype}));
+				}
+			}
+			//text message
+			else {
+				message_ui.appendChild(document.createFullElement('span', {'class' : 'message'}, message.data));
+			}
 			return message_ui;
 		}
 
@@ -119,7 +184,8 @@ window.addEventListener(
 					Event.stop(event);
 					var message = {
 						emitter : user.id,
-						text : this.message.value,
+						type : 'text',
+						data : this.message.value,
 						time : new Date().toString()
 					};
 					call.channel.send(JSON.stringify(message));
@@ -202,7 +268,6 @@ window.addEventListener(
 							}
 							catch(exception) {
 								console.log(exception);
-								console.log(signal.call.id, calls);
 								var call = signal.call;
 								call.is_caller = false;
 								call.sdp = signal.sdp;
@@ -465,39 +530,10 @@ window.addEventListener(
 				document.getElementById(call.id).style.display = 'block';
 			};
 			call.channel.onmessage = function(event) {
-				console.log('channel data', event);
-				if(String.isString(event.data)) {
-					var message = JSON.parse(event.data);
-					var message_ui = draw_message(message);
-					document.getElementById(call.id).querySelector('[data-binding="user-messages"]').appendChild(message_ui);
-				}
-				else {
-					var reader = new FileReader();
-					reader.onloadstart = function() {
-						//UI.StartLoading();
-					};
-					reader.onerror = function() {
-						show_error('Error while loading ' + file.name);
-					};
-					reader.onload = function(reader_event) {
-						var link = reader.result;
-						var message_ui = document.createFullElement('li');
-						var time = new Date(event.timeStamp);
-						var message_date_text = time.getHours().pad(2) + ':' + time.getMinutes().pad(2) + ':' + time.getSeconds().pad(2)
-						message_ui.appendChild(document.createFullElement('time', {}, message_date_text));
-						//message_ui.appendChild(document.createFullElement('span', {'class' : 'user'}, user_name));
-						var message_content = document.createFullElement('span', {'class' : 'message'});
-						message_content.appendChild(document.createTextNode('Incoming file'));
-						var message_accept_file = document.createFullElement('a', {href : link, download : 'file'}, 'Download');
-						message_content.appendChild(message_accept_file);
-						message_ui.appendChild(message_content);
-						document.getElementById(call.id).querySelector('[data-binding="user-messages"]').appendChild(message_ui);
-					};
-					reader.onloadend = function() {
-						//UI.StopLoading();
-					};
-					reader.readAsDataURL(event.data);
-				}
+				//console.log('channel data', event);
+				var message = JSON.parse(event.data);
+				var message_ui = draw_message(message);
+				document.getElementById(call.id).querySelector('[data-binding="user-messages"]').appendChild(message_ui);
 			};
 			call.channel.onclose = function(event) {
 				console.log('channel close', event);

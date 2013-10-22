@@ -104,3 +104,6 @@ button {
 	color: #333;
 	margin-left: 5px;
 }
+.messages > li > span.message img {
+	max-width: 80%;
+}
