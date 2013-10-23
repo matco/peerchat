@@ -42,8 +42,13 @@
 		</div>
 
 		<div id="call" class="column" style="display: none;">
-			<h2 data-binding="user-name" class="column_header"></h2>
-			<ul data-binding="user-messages" class="messages"></ul>
+			<h2 class="column_header">
+				<img src="images/comment.png" alt="Conversation" title="Conversation" style="margin-right: 10px;"/>
+				<span data-binding="call-username"></span>
+				<img data-binding="call-end" src="images/cross.png" alt="End" title="End" style="float: right; cursor: pointer;" />
+				<img data-binding="call-loading" src="images/loading.png" alt="Loading" title="Loading" style="float: right; visibility: hidden;" />
+			</h2>
+			<ul data-binding="call-messages" class="messages"></ul>
 			<form class="column_footer">
 				<input name="message" />
 				<button type="submit" disabled="disabled">Send</button>

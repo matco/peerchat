@@ -19,7 +19,7 @@ ul {
 	margin: 0;
 	padding: 2px;
 }
-button {
+button:not(["disabled"]) {
 	cursor: pointer;
 }
 .notification {
@@ -89,7 +89,6 @@ button {
 	width: 100px;
 }
 /* calls columns */
-
 .messages > li > time {
 	font-size: 8px;
 	color: #bbb;

@@ -52,7 +52,7 @@ window.addEventListener(
 		var secure = window.location.protocol.contains('s');
 		document.getElementById('server')['server'].value = (secure ? 'wss://' : 'ws://') + window.location.host;
 
-		//manage UI helpers
+		//UI helpers
 		var UI = {};
 
 		UI.ShowError = (function() {
@@ -91,7 +91,7 @@ window.addEventListener(
 				//file must be read to be bundled inside a message
 				var reader = new FileReader();
 				reader.onloadstart = function() {
-					//UI.StartLoading();
+					that.querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
 				};
 				reader.onerror = function() {
 					show_error('Error while loading ' + file.name);
@@ -100,7 +100,6 @@ window.addEventListener(
 				};
 				reader.onloadend = function(reader_event) {
 					console.log(reader.result);
-					//UI.StopLoading();
 					//TODO missing a closure to retrieve file name
 					var message = {
 						emitter : user.id,
@@ -110,8 +109,10 @@ window.addEventListener(
 						data : reader.result,
 						time : new Date().toString()
 					};
+					console.log(JSON.stringify(message));
 					that.call.channel.send(JSON.stringify(message));
-					that.querySelector('[data-binding="user-messages"]').appendChild(draw_message(message));
+					that.querySelector('[data-binding="call-messages"]').appendChild(draw_message(message));
+					that.querySelector('[data-binding="call-loading"]').style.display = 'hidden';
 				};
 				reader.readAsBinaryString(file);
 				//reader.readAsText(file);
@@ -160,6 +161,7 @@ window.addEventListener(
 					reader.onloadend = function() {
 						//UI.StopLoading();
 					};
+					//TODO it is useless to convert base 64 string to blob to let the browser convert it again to base 64 while generating data url
 					var bytes = Array.prototype.map.call(message.data, function(c) {return c.charCodeAt(0);});
 					reader.readAsDataURL(new Blob([new Uint8Array(bytes)], {type : message.filetype}));
 				}
@@ -177,7 +179,7 @@ window.addEventListener(
 			call_ui.id = call.id;
 			//find penpal
 			var penpal_id = user.id === call.caller ? call.recipient : call.caller;
-			call_ui.querySelector('[data-binding="user-name"]').textContent = get_username(penpal_id);
+			call_ui.querySelector('[data-binding="call-username"]').textContent = get_username(penpal_id);
 			call_ui.querySelector('form').addEventListener(
 				'submit',
 				function(event) {
@@ -190,8 +192,17 @@ window.addEventListener(
 					};
 					call.channel.send(JSON.stringify(message));
 					var message_ui = draw_message(message);
-					call_ui.querySelector('[data-binding="user-messages"]').appendChild(message_ui);
+					call_ui.querySelector('[data-binding="call-messages"]').appendChild(message_ui);
 					this.message.value = '';
+				}
+			);
+			call_ui.querySelector('[data-binding="call-end"]').addEventListener(
+				'click',
+				function() {
+					call.channel.close();
+					call.peer.close();
+					calls.removeElement(call);
+					document.body.removeChild(call_ui);
 				}
 			);
 			//manage file drop
@@ -250,7 +261,6 @@ window.addEventListener(
 								var call = calls.find(Array.objectFilter({id : signal.call.id}));
 								//only caller needs to set remove description here
 								if(call.caller === user.id) {
-									console.log('set remote desc');
 									console.log(signal.sdp);
 									call.peer.setRemoteDescription(
 										new RTCSessionDescription(signal.sdp),
@@ -261,7 +271,6 @@ window.addEventListener(
 											console.log(error);
 										}
 									);
-									console.log('after set remote desc');
 									//activate ui
 									document.getElementById(call.id).querySelector('button').removeAttribute('disabled');
 								}
@@ -533,11 +542,12 @@ window.addEventListener(
 				//console.log('channel data', event);
 				var message = JSON.parse(event.data);
 				var message_ui = draw_message(message);
-				document.getElementById(call.id).querySelector('[data-binding="user-messages"]').appendChild(message_ui);
+				that.querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
+				document.getElementById(call.id).querySelector('[data-binding="call-messages"]').appendChild(message_ui);
 			};
 			call.channel.onclose = function(event) {
 				console.log('channel close', event);
-				document.getElementById(call.id).style.display = 'none';
+				//document.getElementById(call.id).style.display = 'none';
 			};
 		}
 
