@@ -106,7 +106,7 @@ window.addEventListener(
 						type : 'file',
 						filename : file.name,
 						filetype : file.type,
-						data : reader.result,
+						data : btoa(reader.result),
 						time : new Date().toString()
 					};
 					console.log(JSON.stringify(message));
@@ -162,7 +162,7 @@ window.addEventListener(
 						//UI.StopLoading();
 					};
 					//TODO it is useless to convert base 64 string to blob to let the browser convert it again to base 64 while generating data url
-					var bytes = Array.prototype.map.call(message.data, function(c) {return c.charCodeAt(0);});
+					var bytes = Array.prototype.map.call(atob(message.data), function(c) {return c.charCodeAt(0);});
 					reader.readAsDataURL(new Blob([new Uint8Array(bytes)], {type : message.filetype}));
 				}
 			}
