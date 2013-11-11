@@ -41,16 +41,14 @@ window.addEventListener(
 		}
 		users.push(user);
 
-		//fill username
-		document.getElementById('connect')['username'].value = user.name;
-
 		function get_username(user_id) {
 			return users.find(Array.objectFilter({id : user_id})).name
 		}
 
-		//fill server based on current url
+		//fill login form
 		var secure = window.location.protocol.contains('s');
-		document.getElementById('server')['server'].value = (secure ? 'wss://' : 'ws://') + window.location.host;
+		document.getElementById('connect')['server'].value = (secure ? 'wss://' : 'ws://') + window.location.host;
+		document.getElementById('connect')['username'].value = user.name;
 
 		//UI helpers
 		var UI = {};
@@ -111,8 +109,10 @@ window.addEventListener(
 					};
 					console.log(JSON.stringify(message));
 					that.call.channel.send(JSON.stringify(message));
-					that.querySelector('[data-binding="call-messages"]').appendChild(draw_message(message));
-					that.querySelector('[data-binding="call-loading"]').style.display = 'hidden';
+					draw_message(message, function(message_ui) {
+						that.querySelector('[data-binding="call-messages"]').appendChild(message_ui);
+						that.querySelector('[data-binding="call-loading"]').style.display = 'hidden';
+					});
 				};
 				reader.readAsBinaryString(file);
 				//reader.readAsText(file);
@@ -123,7 +123,7 @@ window.addEventListener(
 		//document.body.addEventListener('dragover', dragover);
 		//document.body.addEventListener('drop', drop);
 
-		function draw_message(message) {
+		function draw_message(message, callback) {
 			var message_ui = document.createFullElement('li');
 			var time = new Date(message.time);
 			var message_date_text = time.getHours().pad(2) + ':' + time.getMinutes().pad(2) + ':' + time.getSeconds().pad(2)
@@ -138,9 +138,6 @@ window.addEventListener(
 				}
 				else {
 					var reader = new FileReader();
-					reader.onloadstart = function() {
-						//UI.StartLoading();
-					};
 					reader.onerror = function() {
 						show_error('Error while loading ' + file.name);
 					};
@@ -157,9 +154,7 @@ window.addEventListener(
 						var message_download_file = document.createFullElement('a', {href : link, download : message.filename, style : 'margin-left: 5px;'}, 'Download');
 						message_content.appendChild(message_download_file);
 						message_ui.appendChild(message_content);
-					};
-					reader.onloadend = function() {
-						//UI.StopLoading();
+						callback(message_ui);
 					};
 					//TODO it is useless to convert base 64 string to blob to let the browser convert it again to base 64 while generating data url
 					var bytes = Array.prototype.map.call(atob(message.data), function(c) {return c.charCodeAt(0);});
@@ -169,8 +164,8 @@ window.addEventListener(
 			//text message
 			else {
 				message_ui.appendChild(document.createFullElement('span', {'class' : 'message'}, message.data));
+				callback(message_ui);
 			}
-			return message_ui;
 		}
 
 		function create_call_ui(call) {
@@ -190,10 +185,12 @@ window.addEventListener(
 						data : this.message.value,
 						time : new Date().toString()
 					};
+					var that = this;
 					call.channel.send(JSON.stringify(message));
-					var message_ui = draw_message(message);
-					call_ui.querySelector('[data-binding="call-messages"]').appendChild(message_ui);
-					this.message.value = '';
+					draw_message(message, function(message_ui) {
+						call_ui.querySelector('[data-binding="call-messages"]').appendChild(message_ui); 
+						that.message.value = '';
+					});
 				}
 			);
 			call_ui.querySelector('[data-binding="call-end"]').addEventListener(
@@ -245,7 +242,7 @@ window.addEventListener(
 			return li;
 		}
 
-		function connect_signalisation(user) {
+		function connect_signalisation() {
 
 			socket = new WebSocket(server);
 			socket.addEventListener(
@@ -276,7 +273,7 @@ window.addEventListener(
 								}
 							}
 							catch(exception) {
-								console.log(exception);
+								//console.log(exception);
 								var call = signal.call;
 								call.is_caller = false;
 								call.sdp = signal.sdp;
@@ -345,9 +342,11 @@ window.addEventListener(
 					//send a hello message
 					socket.sendObject({type : 'connection', action : 'login', user : user});
 					//update ui
-					document.getElementById('connecting').style.display = 'none';
-					document.getElementById('disconnect').style.display = 'inline';
-					document.getElementById('status').src = 'images/bullet_green.png';
+					document.getElementById('server').textContent = server;
+					document.getElementById('username').textContent = user.name;
+					document.getElementById('connect').style.display = 'none';
+					document.querySelector('header').style.display = 'block';
+					document.getElementById('contacts').style.display = 'block';
 				}
 			);
 
@@ -363,24 +362,13 @@ window.addEventListener(
 			};
 		}
 
-		document.getElementById('server').addEventListener(
-			'submit',
-			function(event) {
-				Event.stop(event);
-				server = this['server'].value;
-				document.getElementById('contacts').style.display = 'block';
-				this.style.display = 'none';
-			}
-		);
-
 		document.getElementById('connect').addEventListener(
 			'submit',
 			function(event) {
 				Event.stop(event);
+				server = this['server'].value;
 				user.name = this['username'].value;
-				connect_signalisation(user);
-				this.style.display = 'none';
-				document.getElementById('connecting').style.display = 'inline';
+				connect_signalisation();
 			}
 		);
 
@@ -388,10 +376,10 @@ window.addEventListener(
 			'click',
 			function() {
 				socket.close();
-				document.getElementById('users').clear();
-				document.getElementById('status').src = 'images/bullet_red.png';
-				this.style.display = 'none';
-				document.getElementById('connect').style.display = 'inline';
+				//update ui
+				document.getElementById('connect').style.display = 'block';
+				document.querySelector('header').style.display = 'none';
+				document.getElementById('contacts').style.display = 'none';
 			}
 		);
 
@@ -541,9 +529,11 @@ window.addEventListener(
 			call.channel.onmessage = function(event) {
 				//console.log('channel data', event);
 				var message = JSON.parse(event.data);
-				var message_ui = draw_message(message);
-				that.querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
-				document.getElementById(call.id).querySelector('[data-binding="call-messages"]').appendChild(message_ui);
+				document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
+				draw_message(message, function(message_ui) {
+					document.getElementById(call.id).querySelector('[data-binding="call-messages"]').appendChild(message_ui);
+					document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'hidden';
+				});
 			};
 			call.channel.onclose = function(event) {
 				console.log('channel close', event);

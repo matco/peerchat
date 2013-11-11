@@ -9,41 +9,55 @@
 		<title>Webchat</title>
 	</head>
 	<body>
-		<p id="error" class="notification"></p>
-		<p id="incoming_call" class="notification">
+		<form id="connect">
+			<div>
+				<p>
+					<label>
+						<span>Server</span>
+						<input name="server" type="text" list="servers" required="required" style="width: 250px;" />
+						<datalist id="servers">
+							<option>ws://localhost:1337</option>
+							<option>wss://webchat-c9-matco.c9.io</option>
+						</datalist>
+					</label>
+				</p>
+				<p>
+					<label>
+						<span>Username</span>
+						<input type="text" name="username" placeholder="username" required="required" />
+					</label>
+				</p>
+			</div>
+			<menu>
+				<span id="connecting" style="display: none;">Connecting</span>
+				<button>Connect</button>
+			</menu>
+		</form>
+
+		<p id="error"></p>
+
+		<p id="incoming_call">
 			Incoming call from <span id="incoming_call_user"></span>
 			<button id="incoming_call_answer">Answer</button>
 			<button id="incoming_call_decline">Decline</button>
 		</p>
-		<form id="server">
-			<p>
-				<label>
-					<span>Server</span><input name="server" type="text" list="servers" required="required" style="margin-left: 15px; width: 250px;" />
-					<datalist id="servers">
-						<option>ws://localhost:1337</option>
-						<option>wss://webchat-c9-matco.c9.io</option>
-					</datalist>
-				</label>
-			</p>
-			<button>Connect</button>
-		</form>
+
+		<header style="display: none;">
+			Connected on <strong id="server"></strong> as <strong id="username"></strong>
+			<button id="disconnect" type="button">Disconnect</button>
+		</header>
 
 		<div id="contacts" class="column" style="display: none;">
-			<h2 class="column_header"><img id="status" src="images/bullet_red.png"/>Users</h2>
+			<h2 class="column_header">
+				<img src="images/group.png" alt="People" title="People" />
+				People
+			</h2>
 			<ul id="users"></ul>
-			<div class="column_footer">
-				<form id="connect">
-					<input type="text" name="username" placeholder="username" required="required" />
-					<button type="submit">Connect</button>
-				</form>
-				<span id="connecting" style="display: none;">Connecting</span>
-				<button id="disconnect" type="button" style="display: none;">Disconnect</button>
-			</div>
 		</div>
 
 		<div id="call" class="column" style="display: none;">
 			<h2 class="column_header">
-				<img src="images/comment.png" alt="Conversation" title="Conversation" style="margin-right: 10px;"/>
+				<img src="images/comment.png" alt="Conversation" title="Conversation" />
 				<span data-binding="call-username"></span>
 				<img data-binding="call-end" src="images/cross.png" alt="End" title="End" style="float: right; cursor: pointer;" />
 				<img data-binding="call-loading" src="images/loading.png" alt="Loading" title="Loading" style="float: right; visibility: hidden;" />
