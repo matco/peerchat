@@ -269,7 +269,7 @@ window.addEventListener(
 										}
 									);
 									//activate ui
-									document.getElementById(call.id).querySelector('button').removeAttribute('disabled');
+									document.getElementById(call.id).querySelectorAll('input,button').forEach(HTMLElement.prototype.removeAttribute.callbackize('disabled'));
 								}
 							}
 							catch(exception) {
@@ -312,7 +312,6 @@ window.addEventListener(
 						if(signal.hasOwnProperty('users')) {
 							users.pushAll(signal.users);
 							signal.users.map(create_user).forEach(Node.prototype.appendChild, document.getElementById('users'));
-							document.getElementById('disconnect').style.display = 'inline';
 						}
 						else if(signal.hasOwnProperty('user')) {
 							var users_ui = document.getElementById('users');
@@ -512,7 +511,7 @@ window.addEventListener(
 						call.peer.createAnswer(peer_got_description, peer_didnt_get_description);
 						//create and activate ui
 						create_call_ui(call);
-						document.getElementById(call.id).querySelector('button').removeAttribute('disabled');
+						document.getElementById(call.id).querySelectorAll('input,button').forEach(HTMLElement.prototype.removeAttribute.callbackize('disabled'));
 					}
 				},
 				function(error) {
