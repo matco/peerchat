@@ -112,6 +112,13 @@ if(!Function.isFunction) {
 }
 
 //prototypes
+Function.prototype.callbackize = function() {
+	var original = this;
+	var args = arguments;
+	return function(object) {
+		return original.apply(object, args);
+	};
+};
 Function.prototype.unmemoize = function() {
 	throw new Error('Unable to unmemoize a function that has not been memoized');
 };

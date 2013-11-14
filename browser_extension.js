@@ -9,7 +9,31 @@ Node.prototype.clear = function() {
 	//allow chain
 	return this;
 };
-Node.prototype.setAttributes = function(attributes) {
+/*Node.prototype.up = function(tag) {
+	if(this.parentNode.nodeName.toLowerCase() === tag.toLowerCase()) {
+		return this.parentNode;
+	}
+	return this.parentNode.up(tag);
+};*/
+
+//NodeList
+/*for(property in Array.prototype) {
+	if(Array.prototype.hasOwnProperty(property) && typeof(Array.prototype[property]) === 'function') {
+		console.log(property);
+		NodeList.prototype[property] = Array.prototype[property];
+	}
+}*/
+NodeList.prototype.indexOf = Array.prototype.indexOf;
+NodeList.prototype.filter = Array.prototype.filter;
+NodeList.prototype.forEach = Array.prototype.forEach;
+NodeList.prototype.every = Array.prototype.every;
+NodeList.prototype.map = Array.prototype.map;
+NodeList.prototype.some = Array.prototype.some;
+NodeList.prototype.sort = Array.prototype.sort;
+NodeList.prototype.find = Array.prototype.find;
+
+//Element
+Element.prototype.setAttributes = function(attributes) {
 	if(attributes) {
 		for(var attribute in attributes) {
 			if(attributes.hasOwnProperty(attribute)) {
@@ -20,22 +44,6 @@ Node.prototype.setAttributes = function(attributes) {
 	//allow chain
 	return this;
 };
-/*Node.prototype.up = function(tag) {
-	if(this.parentNode.nodeName.toLowerCase() === tag.toLowerCase()) {
-		return this.parentNode;
-	}
-	return this.parentNode.up(tag);
-};*/
-
-//NodeList
-NodeList.prototype.indexOf = Array.prototype.indexOf;
-NodeList.prototype.filter = Array.prototype.filter;
-NodeList.prototype.forEach = Array.prototype.forEach;
-NodeList.prototype.every = Array.prototype.every;
-NodeList.prototype.map = Array.prototype.map;
-NodeList.prototype.some = Array.prototype.some;
-NodeList.prototype.sort = Array.prototype.sort;
-NodeList.prototype.find = Array.prototype.find;
 
 //Document
 (function() {
@@ -112,7 +120,7 @@ HTMLSelectElement.prototype.fill = function(entries, blank_option, selected_entr
 HTMLSelectElement.prototype.fillObjects = function(objects, value_property, label_property, blank_option, selected_entries) {
 	var entries = {};
 	var i = 0, length = objects.length;
-	for(; i < objects.length; i++) {
+	for(; i < length; i++) {
 		var object = objects[i];
 		var value = Function.isFunction(value_property) ? value_property.call(object) : object[value_property];
 		var label = Function.isFunction(label_property) ? label_property.call(object) : object[label_property];
@@ -147,11 +155,3 @@ Event.stop = function(event) {
 	}
 };
 
-/*
-for(property in Array.prototype) {
-	console.log(property);
-	if(Array.prototype.hasOwnProperty(property) && typeof(Array.prototype[property]) === 'function') {
-		console.log(property);
-		NodeList[property] = Array.prototype[property];
-	}
-}*/
