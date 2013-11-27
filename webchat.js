@@ -5,6 +5,8 @@ var RTCSessionDescription = window.RTCSessionDescription || window.webkitRTCSess
 var RTCIceCandidate = window.RTCIceCandidate || window.webkitRTCIceCandidate || window.mozRTCIceCandidate
 var getUserMedia = navigator.webkitGetUserMedia ? navigator.webkitGetUserMedia.bind(navigator) : navigator.mozGetUserMedia.bind(navigator);
 
+var CHUNK_SIZE = 100 * 1000;
+
 //TODO improve this
 function guid() {
 	var uid = '';
@@ -83,43 +85,73 @@ window.addEventListener(
 		function drop(event) {
 			event.preventDefault();
 			var that = this;
-			//TODO create a closure containing file
 			for(var i = 0; i < event.dataTransfer.files.length; i++) {
 				var file = event.dataTransfer.files[i];
-				//file must be read to be bundled inside a message
-				var reader = new FileReader();
-				reader.onloadstart = function() {
-					that.querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
+				var message = {
+					emitter : user.id,
+					type : 'file',
+					filename : file.name,
+					filetype : file.type,
+					filesize : file.size,
+					time : new Date().toString()
 				};
-				reader.onerror = function() {
-					show_error('Error while loading ' + file.name);
-				};
-				reader.onload = function() {
-				};
-				reader.onloadend = function(reader_event) {
-					console.log(reader.result);
-					//TODO missing a closure to retrieve file name
-					var message = {
-						emitter : user.id,
-						type : 'file',
-						filename : file.name,
-						filetype : file.type,
-						data : btoa(reader.result),
-						time : new Date().toString()
-					};
-					console.log(JSON.stringify(message));
-					that.call.channel.send(JSON.stringify(message));
-					draw_message(message, function(message_ui) {
-						that.querySelector('[data-binding="call-messages"]').appendChild(message_ui);
-						that.querySelector('[data-binding="call-loading"]').style.display = 'hidden';
-					});
-				};
-				reader.readAsBinaryString(file);
-				//reader.readAsText(file);
-				//reader.readAsArrayBuffer(file);
+				that.call.channel.send(JSON.stringify(message));
+				draw_message(message, function(message_ui) {
+					that.querySelector('[data-binding="call-messages"]').appendChild(message_ui);
+					send_file(that.call.channel, file, 0, message_ui);
+				});
 			}
 			dragend.call(this);
 		}
+
+		function send_file(channel, file, offset, message_ui) {
+			//file must be cut into small chunk which are read and bundled inside a message
+			var chunk = file.slice(offset, offset += CHUNK_SIZE);
+			var end = offset > file.size;
+
+			var reader = new FileReader();
+			reader.onloadstart = function() {
+				//that.querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
+			};
+			reader.onerror = function() {
+				show_error('Error while loading ' + file.name);
+			};
+			reader.onload = function() {
+			};
+			reader.onloadend = function(event) {
+				//console.log(reader.result);
+				var message = {
+					emitter : user.id,
+					type : 'chunk',
+					offset : offset,
+					data : event.target.result,
+					end : end,
+					time : new Date().toString()
+				};
+				//console.log(JSON.stringify(message));
+				channel.send(JSON.stringify(message));
+				//continue with next chunk and update ui
+				if(!end) {
+					message_ui.querySelector('progress').setAttribute('value', offset);
+					send_file(channel, file, offset, message_ui);
+				}
+				//display message at the end
+				else {
+					var progress = message_ui.querySelector('progress');
+					progress.parentNode.removeChild(progress);
+					message_ui.querySelector('span.message').textContent = 'File ' + file.name + ' sent';
+					/*draw_message(message, function(message_ui) {
+						that.querySelector('[data-binding="call-messages"]').appendChild(message_ui);
+						that.querySelector('[data-binding="call-loading"]').style.display = 'hidden';
+					});*/
+				}
+			};
+
+			reader.readAsBinaryString(chunk);
+			//reader.readAsText(file);
+			//reader.readAsArrayBuffer(file);
+		}
+
 		//document.body.addEventListener('dragover', dragover);
 		//document.body.addEventListener('drop', drop);
 
@@ -133,33 +165,16 @@ window.addEventListener(
 			message_ui.appendChild(document.createFullElement('span', {'class' : 'user'}, user_name));
 			//file message
 			if(message.type === 'file') {
+				var message_content = document.createFullElement('span', {'class' : 'message'});
 				if(is_emitter) {
-					message_ui.appendChild(document.createFullElement('span', {'class' : 'message'}, 'Sending file ' + message.filename));
+					message_content.appendChild(document.createTextNode('Sending file ' + message.filename));
 				}
 				else {
-					var reader = new FileReader();
-					reader.onerror = function() {
-						show_error('Error while loading ' + file.name);
-					};
-					reader.onload = function(reader_event) {
-						var link = reader.result;
-						var message_content = document.createFullElement('span', {'class' : 'message'});
-						if(message.filetype.contains('image')) {
-							var message_image = document.createFullElement('img', {src : link, alt : message.filename, title : message.filename});
-							message_content.appendChild(message_image);
-						}
-						else {
-							message_content.appendChild(document.createTextNode('Incoming file'));
-						}
-						var message_download_file = document.createFullElement('a', {href : link, download : message.filename, style : 'margin-left: 5px;'}, 'Download');
-						message_content.appendChild(message_download_file);
-						message_ui.appendChild(message_content);
-						callback(message_ui);
-					};
-					//TODO it is useless to convert base 64 string to blob to let the browser convert it again to base 64 while generating data url
-					var bytes = Array.prototype.map.call(atob(message.data), function(c) {return c.charCodeAt(0);});
-					reader.readAsDataURL(new Blob([new Uint8Array(bytes)], {type : message.filetype}));
+					message_content.appendChild(document.createTextNode('Incoming file ' + message.filename));
 				}
+				message_content.appendChild(document.createFullElement('progress', {value : 0, max : message.filesize}));
+				message_ui.appendChild(message_content);
+				callback(message_ui);
 			}
 			//text message
 			else {
@@ -520,6 +535,10 @@ window.addEventListener(
 			);
 		}
 
+		var current_file_content;
+		var current_file_message;
+		var current_file_message_ui;
+
 		function manage_channel(call) {
 			call.channel.onopen = function(event) {
 				console.log('channel open', event);
@@ -529,10 +548,47 @@ window.addEventListener(
 				//console.log('channel data', event);
 				var message = JSON.parse(event.data);
 				document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
-				draw_message(message, function(message_ui) {
-					document.getElementById(call.id).querySelector('[data-binding="call-messages"]').appendChild(message_ui);
-					document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'hidden';
-				});
+				if(message.type === 'chunk') {
+					//concat chunks together
+					current_file_content.push(new Uint8Array(Array.prototype.map.call(message.data, function(c) {return c.charCodeAt(0);})));
+					var progress = current_file_message_ui.querySelector('progress');
+					//create download link when all data have arrived
+					if(message.end) {
+						var reader = new FileReader();
+						reader.onerror = function() {
+							show_error('Error while loading ' + file.name);
+						};
+						reader.onload = function(reader_event) {
+							var link = reader_event.target.result;
+							if(current_file_message.filetype.contains('image')) {
+								var message_image = document.createFullElement('img', {src : link, alt : current_file_message.filename, title : current_file_message.filename});
+								current_file_message_ui.appendChild(message_image);
+							}
+							var message_download_file = document.createFullElement('a', {href : link, download : current_file_message.filename, style : 'margin-left: 5px;'}, 'Download');
+							current_file_message_ui.querySelector('[data-binding="call-loading"]').style.visibility = 'hidden';
+							current_file_message_ui.appendChild(message_download_file);
+							progress.parentNode.removeChild(progress);
+						};
+						//TODO it is useless to convert base 64 string to blob to let the browser convert it again to base 64 while generating data url
+						var blob = new Blob(current_file_content, {type : current_file_message.filetype});
+						reader.readAsDataURL(blob);
+					}
+					else {
+						progress.setAttribute('value', (current_file_content.length - 1) * CHUNK_SIZE + current_file_content.last().length);
+					}
+				}
+				else {
+					draw_message(message, function(message_ui) {
+						//keep a hook on file message ui
+						if(message.type === 'file') {
+							current_file_message = message;
+							current_file_content = [];
+							current_file_message_ui = message_ui;
+						}
+						document.getElementById(call.id).querySelector('[data-binding="call-messages"]').appendChild(message_ui);
+						document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'hidden';
+					});
+				}
 			};
 			call.channel.onclose = function(event) {
 				console.log('channel close', event);
