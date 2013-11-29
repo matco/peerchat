@@ -22,6 +22,23 @@ var socket;
 var users = [];
 var calls = [];
 
+UI.ShowError = (function() {
+	var error_timeout;
+	var error_container = document.getElementById('error');
+
+	function hide_error() {
+		error_container.textContent = '';
+	}
+
+	return function show_error(error, time) {
+		if(error_timeout) {
+			clearTimeout(error_timeout);
+		}
+		error_container.textContent = error;
+		error_timeout = setTimeout(hide_error, time || 5000);
+	}
+})();
+
 window.addEventListener(
 	'unload',
 	function() {
@@ -52,26 +69,6 @@ window.addEventListener(
 		document.getElementById('connect')['server'].value = (secure ? 'wss://' : 'ws://') + window.location.host;
 		document.getElementById('connect')['username'].value = user.name;
 
-		//UI helpers
-		var UI = {};
-
-		UI.ShowError = (function() {
-			var error_timeout;
-			var error_container = document.getElementById('error');
-
-			function hide_error() {
-				error_container.textContent = '';
-			}
-
-			function show_error(error, time) {
-				if(error_timeout) {
-					clearTimeout(error_timeout);
-				}
-				error_container.textContent = error;
-				error_timeout = setTimeout(hide_error, time || 5000);
-			}
-		})();
-
 		function dragover(event) {
 			Event.stop(event);
 			this.style.backgroundColor = '#ddd';
@@ -95,28 +92,36 @@ window.addEventListener(
 					filesize : file.size,
 					time : new Date().toString()
 				};
-				that.call.channel.send(JSON.stringify(message));
-				draw_message(message, function(message_ui) {
-					that.querySelector('[data-binding="call-messages"]').appendChild(message_ui);
-					send_file(that.call.channel, file, 0, message_ui);
-				});
+				this.call.channel.send(JSON.stringify(message));
+				var message_ui = draw_message(message);
+				this.querySelector('[data-binding="call-messages"]').appendChild(message_ui);
+				send_file(
+					this.call.channel,
+					file,
+					0,
+					function(offset) {
+						message_ui.querySelector('progress').setAttribute('value', offset);
+					},
+					function(file) {
+						//remove progress bar
+						var progress = message_ui.querySelector('progress');
+						progress.parentNode.removeChild(progress);
+						//update message text
+						message_ui.querySelector('span.message').textContent = 'File ' + file.name + ' sent';
+					}
+				);
 			}
 			dragend.call(this);
 		}
 
-		function send_file(channel, file, offset, message_ui) {
+		function send_file(channel, file, offset, progression_callback, final_callback) {
 			//file must be cut into small chunk which are read and bundled inside a message
 			var chunk = file.slice(offset, offset += CHUNK_SIZE);
 			var end = offset > file.size;
 
 			var reader = new FileReader();
-			reader.onloadstart = function() {
-				//that.querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
-			};
 			reader.onerror = function() {
-				show_error('Error while loading ' + file.name);
-			};
-			reader.onload = function() {
+				UI.ShowError('Error while loading ' + file.name);
 			};
 			reader.onloadend = function(event) {
 				//console.log(reader.result);
@@ -128,32 +133,25 @@ window.addEventListener(
 					end : end,
 					time : new Date().toString()
 				};
-				//console.log(JSON.stringify(message));
 				channel.send(JSON.stringify(message));
-				//continue with next chunk and update ui
+				//continue with next chunk and call progression callback
 				if(!end) {
-					message_ui.querySelector('progress').setAttribute('value', offset);
-					send_file(channel, file, offset, message_ui);
+					if(progression_callback) {
+						progression_callback.call(null, offset);
+					}
+					//TODO improve this to avoid always passing callback parameters
+					send_file(channel, file, offset, progression_callback, final_callback);
 				}
-				//display message at the end
+				//call final callback
 				else {
-					var progress = message_ui.querySelector('progress');
-					progress.parentNode.removeChild(progress);
-					message_ui.querySelector('span.message').textContent = 'File ' + file.name + ' sent';
-					/*draw_message(message, function(message_ui) {
-						that.querySelector('[data-binding="call-messages"]').appendChild(message_ui);
-						that.querySelector('[data-binding="call-loading"]').style.display = 'hidden';
-					});*/
+					if(final_callback) {
+						final_callback.call(null, file);
+					}
 				}
 			};
 
 			reader.readAsBinaryString(chunk);
-			//reader.readAsText(file);
-			//reader.readAsArrayBuffer(file);
 		}
-
-		//document.body.addEventListener('dragover', dragover);
-		//document.body.addEventListener('drop', drop);
 
 		function draw_message(message, callback) {
 			var message_ui = document.createFullElement('li');
@@ -174,13 +172,12 @@ window.addEventListener(
 				}
 				message_content.appendChild(document.createFullElement('progress', {value : 0, max : message.filesize}));
 				message_ui.appendChild(message_content);
-				callback(message_ui);
 			}
 			//text message
 			else {
 				message_ui.appendChild(document.createFullElement('span', {'class' : 'message'}, message.data));
-				callback(message_ui);
 			}
+			return message_ui;
 		}
 
 		function create_call_ui(call) {
@@ -194,18 +191,17 @@ window.addEventListener(
 				'submit',
 				function(event) {
 					Event.stop(event);
+					//send message
 					var message = {
 						emitter : user.id,
 						type : 'text',
 						data : this.message.value,
 						time : new Date().toString()
 					};
-					var that = this;
 					call.channel.send(JSON.stringify(message));
-					draw_message(message, function(message_ui) {
-						call_ui.querySelector('[data-binding="call-messages"]').appendChild(message_ui); 
-						that.message.value = '';
-					});
+					//update ui
+					call_ui.querySelector('[data-binding="call-messages"]').appendChild(draw_message(message)); 
+					this.message.value = '';;
 				}
 			);
 			call_ui.querySelector('[data-binding="call-end"]').addEventListener(
@@ -334,12 +330,14 @@ window.addEventListener(
 							if(signal.action === 'login') {
 								users.push(signal.user);
 								users_ui.appendChild(create_user(signal.user));
+								UI.Notify(signal.user.name + ' just logged in');
 							}
 							//leaving user
 							else {
 								users.removeElement(signal.user);
 								var child = users_ui.children.find(function(child) {return child.user.id === signal.user.id});
 								users_ui.removeChild(child);
+								UI.Notify(signal.user.name + ' just left');
 							}
 						}
 					}
@@ -545,49 +543,43 @@ window.addEventListener(
 				document.getElementById(call.id).style.display = 'block';
 			};
 			call.channel.onmessage = function(event) {
-				//console.log('channel data', event);
 				var message = JSON.parse(event.data);
-				document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
+				//document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
 				if(message.type === 'chunk') {
 					//concat chunks together
 					current_file_content.push(new Uint8Array(Array.prototype.map.call(message.data, function(c) {return c.charCodeAt(0);})));
 					var progress = current_file_message_ui.querySelector('progress');
 					//create download link when all data have arrived
 					if(message.end) {
-						var reader = new FileReader();
-						reader.onerror = function() {
-							show_error('Error while loading ' + file.name);
-						};
-						reader.onload = function(reader_event) {
-							var link = reader_event.target.result;
-							if(current_file_message.filetype.contains('image')) {
-								var message_image = document.createFullElement('img', {src : link, alt : current_file_message.filename, title : current_file_message.filename});
-								current_file_message_ui.appendChild(message_image);
-							}
-							var message_download_file = document.createFullElement('a', {href : link, download : current_file_message.filename, style : 'margin-left: 5px;'}, 'Download');
-							current_file_message_ui.querySelector('[data-binding="call-loading"]').style.visibility = 'hidden';
-							current_file_message_ui.appendChild(message_download_file);
-							progress.parentNode.removeChild(progress);
-						};
-						//TODO it is useless to convert base 64 string to blob to let the browser convert it again to base 64 while generating data url
 						var blob = new Blob(current_file_content, {type : current_file_message.filetype});
-						reader.readAsDataURL(blob);
+						var url = URL.createObjectURL(blob);
+						//remove progress bar
+						progress.parentNode.removeChild(progress);
+						//update message text and add link download file
+						var message_ui_message = current_file_message_ui.querySelector('span.message');
+						message_ui_message.textContent = 'File ' + current_file_message.filename + ' transfered';
+						var message_download_file = document.createFullElement('a', {href : url, download : current_file_message.filename, style : 'margin-left: 5px;'}, 'Download');
+						message_ui_message.appendChild(message_download_file);
+						//do something with well known mime type
+						if(current_file_message.filetype.contains('image')) {
+							var message_image = document.createFullElement('img', {src : url, alt : current_file_message.filename, title : current_file_message.filename});
+							current_file_message_ui.appendChild(message_image);
+						}
 					}
 					else {
 						progress.setAttribute('value', (current_file_content.length - 1) * CHUNK_SIZE + current_file_content.last().length);
 					}
 				}
 				else {
-					draw_message(message, function(message_ui) {
-						//keep a hook on file message ui
-						if(message.type === 'file') {
-							current_file_message = message;
-							current_file_content = [];
-							current_file_message_ui = message_ui;
-						}
-						document.getElementById(call.id).querySelector('[data-binding="call-messages"]').appendChild(message_ui);
-						document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'hidden';
-					});
+					var message_ui = draw_message(message);
+					//keep a hook on file message ui
+					if(message.type === 'file') {
+						current_file_message = message;
+						current_file_content = [];
+						current_file_message_ui = message_ui;
+					}
+					document.getElementById(call.id).querySelector('[data-binding="call-messages"]').appendChild(message_ui);
+					//document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'hidden';
 				}
 			};
 			call.channel.onclose = function(event) {
