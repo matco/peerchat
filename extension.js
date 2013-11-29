@@ -417,7 +417,7 @@ Date.prototype.clone = function() {
 	return new Date(this.getTime());
 };
 Date.prototype.isBefore = function(date) {
-	return date.getTime() - this.getTime() > 0; 
+	return date.getTime() - this.getTime() > 0;
 };
 Date.prototype.isAfter = function(date) {
 	return date.isBefore(this);
