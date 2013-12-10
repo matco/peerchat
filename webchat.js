@@ -497,7 +497,7 @@ window.addEventListener(
 		function add_media(call) {
 			//create fake stream to launch connection
 			getUserMedia(
-				{audio : true, fake : true},
+				{audio : false, fake : true},
 				function(stream) {
 					console.log('add stream on peer');
 					call.peer.addStream(stream);

@@ -94,9 +94,10 @@ button:not([disabled]) {
 }
 #incoming_call {
 	position: fixed;
+	display: none;
 	top: 40%;
-	left: calc(50% - 150px);
-	width: 300px;
+	left: calc(50% - 125px);
+	width: 250px;
 	padding: 10px;
 	box-sizing: border-box;
 	z-index: 2;
@@ -104,7 +105,7 @@ button:not([disabled]) {
 	border: 2px solid #468847;
 	border-radius: 2px;
 	color: #468847;
-	display: none;
+	text-align: center;
 }
 
 .column {
