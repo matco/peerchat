@@ -24,18 +24,19 @@ var calls = [];
 
 UI.ShowError = (function() {
 	var error_timeout;
-	var error_container = document.getElementById('error');
 
-	function hide_error() {
-		error_container.textContent = '';
-	}
-
-	return function show_error(error, time) {
+	return function(error, time) {
+		//clear previous if any
 		if(error_timeout) {
 			clearTimeout(error_timeout);
 		}
+		var error_container = document.getElementById('error');
 		error_container.textContent = error;
-		error_timeout = setTimeout(hide_error, time || 5000);
+		if(time) {
+			error_timeout = setTimeout(function() {
+				error_container.textContent = '';
+			}, time);
+		}
 	}
 })();
 
@@ -121,7 +122,7 @@ window.addEventListener(
 
 			var reader = new FileReader();
 			reader.onerror = function() {
-				UI.ShowError('Error while loading ' + file.name);
+				UI.ShowError('Error while loading ' + file.name, 5000);
 			};
 			reader.onloadend = function(event) {
 				//console.log(reader.result);
@@ -365,7 +366,7 @@ window.addEventListener(
 			socket.addEventListener(
 				'error',
 				function(event) {
-					document.getElementById('error').textContent = 'Lost connection to signalisation server';
+					UI.ShowError('Lost connection to signalisation server. Please reload the page.');
 				}
 			);
 
