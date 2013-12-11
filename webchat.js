@@ -229,7 +229,7 @@ window.addEventListener(
 				calls.find(function(call) {
 					call.caller === this.user.id || call.recipient === this.user.id;
 				}, this);
-				console.error('There is already a call with user ' + this.user.name);
+				UI.ShowError('You\'re already chatting with ' + this.user.name);
 			}
 			catch(exception) {
 				var call = place_call(this.user.id);
