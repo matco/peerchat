@@ -127,24 +127,24 @@ websocket_server.on('connection', function(connection) {
 		if(!flags.binary) {
 			console.log(new Date().toFullDisplay() + ' Message received ' + message);
 			var content = JSON.parse(message);
-			var other_peers = peers.filter(function(c) {return c.connection !== connection;});
 			//some messages need special handling
 			if(content.type === 'connection') {
 				peer.user = content.user;
-				//build list of other peers
 				//return peers list to peer
 				connection.send(JSON.stringify({type : 'connection', users : other_peers.map(function(peer) {return peer.user;})}));
-				//broadcast message to all connected peers
-				other_peers.forEach(function(c) {
-					c.connection.send(message, send_callback);
+				//broadcast message to all other connected peers
+				peers.filter(function(p) {
+					return p.connection !== connection;
+				}).forEach(function(p) {
+					p.connection.send(message, send_callback);
 				});
 			}
 			else if(content.type === 'call') {
-				//send message to the recipient
-				other_peers.filter(function(peer) {
-					return peer.user.id === content.call.recipient || peer.user.id === content.call.caller;
-				}).forEach(function(target) {
-					target.connection.send(message, send_callback);
+				//send message to peers involved in the call
+				peers.filter(function(p) {
+					return p.user.id === content.call.recipient || p.user.id === content.call.caller;
+				}).forEach(function(p) {
+					p.connection.send(message, send_callback);
 				});
 			}
 		}
@@ -155,8 +155,8 @@ websocket_server.on('connection', function(connection) {
 		//remove it from peers list
 		peers.removeElement(peer);
 		//notify all others peers
-		peers.forEach(function(c) {
-			c.connection.send(JSON.stringify({type : 'connection', user : peer.user, action : 'logout'}), send_callback);
+		peers.forEach(function(p) {
+			p.connection.send(JSON.stringify({type : 'connection', user : peer.user, action : 'logout'}), send_callback);
 		});
 	});
 });
