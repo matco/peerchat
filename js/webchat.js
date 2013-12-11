@@ -265,7 +265,22 @@ window.addEventListener(
 					//call related messages
 					if(signal.type === 'call') {
 						//call can be an incoming call or informations about an occuring call
-						if(signal.hasOwnProperty('sdp')) {
+						if(signal.hasOwnProperty('action')) {
+							try {
+								var call = calls.find(Array.objectFilter({id : signal.call.id}));
+								//only caller needs to set remove description here
+								if(call.caller === user.id) {
+									//disable ui
+									document.getElementById(call.id).parentNode.removeChild(document.getElementById(call.id));
+									//show message
+									UI.ShowError(get_username(call.recipient) + ' declines your call', 3000);
+								}
+							}
+							catch(exception) {
+								//nothing to do, user has declined the call
+							}
+						}
+						else if(signal.hasOwnProperty('sdp')) {
 							try {
 								var call = calls.find(Array.objectFilter({id : signal.call.id}));
 								//only caller needs to set remove description here
@@ -299,7 +314,7 @@ window.addEventListener(
 							}
 						}
 						//ice candidate
-						if(signal.hasOwnProperty('candidate')) {
+						else if(signal.hasOwnProperty('candidate')) {
 							try {
 								var candidate = new RTCIceCandidate(signal.candidate);
 								//find associated call
@@ -399,7 +414,10 @@ window.addEventListener(
 		document.getElementById('incoming_call_decline').addEventListener(
 			'click',
 			function(event) {
-				document.getElementById('incoming_call').style.display = 'none';
+				var incoming_call = document.getElementById('incoming_call');
+				incoming_call.style.display = 'none';
+				var call = incoming_call.call;
+				socket.sendObject({type : 'call', action : 'decline', call : sanitize_call(call)});
 			}
 		);
 
