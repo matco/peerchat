@@ -504,7 +504,11 @@ window.addEventListener(
 				};*/
 			};
 			peer.onclosedconnection = function(event) {
-				console.log('peer close connection');
+				//disable ui
+				document.getElementById(call.id).querySelectorAll('input,button').forEach(HTMLElement.prototype.setAttribute.callbackize('disabled', 'disabled'));
+				//show error
+				var penpal_id = user.id === call.caller ? call.recipient : call.caller;
+				UI.ShowError(get_username(penpal_id) + ' ends the chat', 5000);
 			};
 			peer.onaddstream = function(event) {
 				console.log('peer add stream');
