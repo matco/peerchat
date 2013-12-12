@@ -130,12 +130,14 @@ websocket_server.on('connection', function(connection) {
 			//some messages need special handling
 			if(content.type === 'connection') {
 				peer.user = content.user;
+				//find other peers
+				var other_peers = peers.filter(function(p) {
+					return p.connection !== connection;
+				});
 				//return peers list to peer
 				connection.send(JSON.stringify({type : 'connection', users : other_peers.map(function(peer) {return peer.user;})}));
 				//broadcast message to all other connected peers
-				peers.filter(function(p) {
-					return p.connection !== connection;
-				}).forEach(function(p) {
+				other_peers.forEach(function(p) {
 					p.connection.send(message, send_callback);
 				});
 			}
