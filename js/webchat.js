@@ -227,7 +227,7 @@ window.addEventListener(
 			//check if there is not already an existing call with this user
 			try {
 				calls.find(function(call) {
-					call.caller === this.user.id || call.recipient === this.user.id;
+					return call.caller === this.user.id || call.recipient === this.user.id;
 				}, this);
 				UI.ShowError('You\'re already chatting with ' + this.user.name);
 			}
