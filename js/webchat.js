@@ -346,14 +346,14 @@ window.addEventListener(
 							if(signal.action === 'login') {
 								users.push(signal.user);
 								users_ui.appendChild(create_user(signal.user));
-								UI.Notify(signal.user.name + ' just logged in');
+								UI.Notify(signal.user.name + ' logged in');
 							}
 							//leaving user
 							else {
 								users.removeElement(signal.user);
 								var child = users_ui.children.find(function(child) {return child.user.id === signal.user.id});
 								users_ui.removeChild(child);
-								UI.Notify(signal.user.name + ' just left');
+								UI.Notify(signal.user.name + ' left');
 							}
 						}
 					}
