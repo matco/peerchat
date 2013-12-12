@@ -116,8 +116,8 @@ input:focus {
 	box-sizing: border-box;
 	z-index: 2;
 	background-color: #DFF0D8;
-	border: 2px solid #468847;
-	border-radius: 2px;
+	border: 5px solid #468847;
+	border-radius: 5px;
 	color: #468847;
 	text-align: center;
 }
