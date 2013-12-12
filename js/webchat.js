@@ -229,7 +229,7 @@ window.addEventListener(
 				calls.find(function(call) {
 					return call.caller === this.user.id || call.recipient === this.user.id;
 				}, this);
-				UI.ShowError('You\'re already chatting with ' + this.user.name);
+				UI.ShowError('You\'re already chatting with ' + this.user.name, 3000);
 			}
 			catch(exception) {
 				var call = place_call(this.user.id);
@@ -403,11 +403,24 @@ window.addEventListener(
 		document.getElementById('disconnect').addEventListener(
 			'click',
 			function() {
+				//ends all calls and remove associated ui
+				calls.forEach(function(call) {
+					//peer may not have been created yet if call is happening right now
+					if(call.peer) {
+						call.peer.close();
+					}
+					//same for channel
+					if(call.channel) {
+						call.channel.close();
+					}
+					document.body.removeChild(document.getElementById(call.id));
+				});
+				//close connection to signalisation
 				socket.close();
 				//update ui
-				document.getElementById('connect').style.display = 'block';
-				document.querySelector('header').style.display = 'none';
 				document.getElementById('contacts').style.display = 'none';
+				document.querySelector('header').style.display = 'none';
+				document.getElementById('connect').style.display = 'block';
 			}
 		);
 
