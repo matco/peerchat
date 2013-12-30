@@ -7,4 +7,4 @@ Deployment
 Webchat needs a signalisation server to manage users list and to initiate connections. This server is a tiny Node.js script which also serves static HTML files.
 Run with ```node server.node.js```.
 
-A sample server can be found [here](http://http://peerchat.herokuapp.com)
+A sample server can be found [here](http://peerchat.herokuapp.com)
