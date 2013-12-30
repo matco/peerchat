@@ -59,6 +59,11 @@ input {
 }
 input:focus {
 	border: 2px solid #aaa;
+	box-shadow: none;
+}
+input:invalid {
+	border: 2px solid #D43F3A;
+	box-shadow: none;
 }
 
 #connect {
