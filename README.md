@@ -4,7 +4,7 @@ Webchat allows you to chat and send files to anyone using only your browser. It 
 
 Deployment
 ----------
-Webchat needs a signalisation server to manage users list and to initiate connections. This server is a tiny Node.js script which also serves static HTML files.
+Webchat needs a signalisation server to manage users and to initiate connections. This server is a tiny Node.js script which also serves static HTML files.
 Run with ```node server.node.js```.
 
-A sample server can be found [here](http://peerchat.herokuapp.com)
+A sample server can be found [here](http://peerchat.herokuapp.com).
