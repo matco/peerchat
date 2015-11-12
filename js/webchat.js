@@ -1,8 +1,8 @@
 'use strict';
 
 var RTCPeerConnection = window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-var RTCSessionDescription = window.RTCSessionDescription || window.webkitRTCSessionDescription || window.mozRTCSessionDescription
-var RTCIceCandidate = window.RTCIceCandidate || window.webkitRTCIceCandidate || window.mozRTCIceCandidate
+var RTCSessionDescription = window.RTCSessionDescription || window.webkitRTCSessionDescription || window.mozRTCSessionDescription;
+var RTCIceCandidate = window.RTCIceCandidate || window.webkitRTCIceCandidate || window.mozRTCIceCandidate;
 var getUserMedia = navigator.webkitGetUserMedia ? navigator.webkitGetUserMedia.bind(navigator) : navigator.mozGetUserMedia.bind(navigator);
 
 var CHUNK_SIZE = 100 * 1000;
@@ -37,7 +37,7 @@ UI.ShowError = (function() {
 				error_container.textContent = '';
 			}, time);
 		}
-	}
+	};
 })();
 
 window.addEventListener(
@@ -62,7 +62,7 @@ window.addEventListener(
 		users.push(user);
 
 		function get_username(user_id) {
-			return users.find(Array.objectFilter({id : user_id})).name
+			return users.find(Array.objectFilter({id : user_id})).name;
 		}
 
 		//fill login form
@@ -82,7 +82,6 @@ window.addEventListener(
 
 		function drop(event) {
 			event.preventDefault();
-			var that = this;
 			for(var i = 0; i < event.dataTransfer.files.length; i++) {
 				var file = event.dataTransfer.files[i];
 				var message = {
@@ -157,7 +156,7 @@ window.addEventListener(
 		function draw_message(message, callback) {
 			var message_ui = document.createFullElement('li');
 			var time = new Date(message.time);
-			var message_date_text = time.getHours().pad(2) + ':' + time.getMinutes().pad(2) + ':' + time.getSeconds().pad(2)
+			var message_date_text = time.getHours().pad(2) + ':' + time.getMinutes().pad(2) + ':' + time.getSeconds().pad(2);
 			message_ui.appendChild(document.createFullElement('time', {}, message_date_text));
 			var is_emitter = message.emitter === user.id;
 			var user_name = is_emitter ? 'You' : get_username(message.emitter);
@@ -202,7 +201,7 @@ window.addEventListener(
 					call.channel.send(JSON.stringify(message));
 					//update ui
 					call_ui.querySelector('[data-binding="call-messages"]').appendChild(draw_message(message)); 
-					this.message.value = '';;
+					this.message.value = '';
 				}
 			);
 			call_ui.querySelector('[data-binding="call-end"]').addEventListener(
@@ -380,7 +379,7 @@ window.addEventListener(
 
 			socket.addEventListener(
 				'error',
-				function(event) {
+				function() {
 					UI.ShowError('Lost connection to signalisation server. Please reload the page.');
 				}
 			);
@@ -426,7 +425,7 @@ window.addEventListener(
 
 		document.getElementById('incoming_call_decline').addEventListener(
 			'click',
-			function(event) {
+			function() {
 				var incoming_call = document.getElementById('incoming_call');
 				incoming_call.style.display = 'none';
 				var call = incoming_call.call;
@@ -436,7 +435,7 @@ window.addEventListener(
 
 		document.getElementById('incoming_call_answer').addEventListener(
 			'click',
-			function(event) {
+			function() {
 				var incoming_call = document.getElementById('incoming_call');
 				incoming_call.style.display = 'none';
 				var call = incoming_call.call;
@@ -516,14 +515,14 @@ window.addEventListener(
 					channel.send('Hello');
 				};*/
 			};
-			peer.onclosedconnection = function(event) {
+			peer.onclosedconnection = function() {
 				//disable ui
 				document.getElementById(call.id).querySelectorAll('input,button').forEach(HTMLElement.prototype.setAttribute.callbackize('disabled', 'disabled'));
 				//show error
 				var penpal_id = user.id === call.caller ? call.recipient : call.caller;
 				UI.ShowError(get_username(penpal_id) + ' ends the chat', 5000);
 			};
-			peer.onaddstream = function(event) {
+			peer.onaddstream = function() {
 				console.log('peer add stream');
 			};
 			call.peer = peer;

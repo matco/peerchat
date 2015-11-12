@@ -119,7 +119,7 @@ websocket_server.on('connection', function(connection) {
 	//add new peer to peers list
 	var peer = {
 		connection : connection
-	}
+	};
 	peers.push(peer);
 
 	connection.on('message', function(message, flags) {
