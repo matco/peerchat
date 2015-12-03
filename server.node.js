@@ -46,7 +46,7 @@ Array.prototype.find = function(callback, thisArgument) {
 			return element;
 		}
 	}
-	throw new Error('Unable to find element');
+	return undefined;
 };
 Date.prototype.toDisplay = function() {
 	return this.getDate().pad(2) + '.' + (this.getMonth() + 1).pad(2) + '.' + this.getFullYear();
