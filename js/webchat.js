@@ -263,7 +263,7 @@ window.addEventListener(
 					console.log('signalisation message received', signal);
 					//call related messages
 					if(signal.type === 'call') {
-						//call can be an incoming call or informations about an occuring call
+						//call can be an incoming call or informations about an occurring call
 						if(signal.hasOwnProperty('action')) {
 							try {
 								var call = calls.find(Array.objectFilter({id : signal.call.id}));
@@ -322,7 +322,7 @@ window.addEventListener(
 								if(call.peer) {
 									call.peer.addIceCandidate(candidate);
 								}
-								//if call has not been answered, candidate is stored temporarly in the call
+								//if call has not been answered, candidate is stored temporarily in the call
 								else {
 									call.candidate = candidate;
 								}
@@ -414,7 +414,7 @@ window.addEventListener(
 					}
 					document.body.removeChild(document.getElementById(call.id));
 				});
-				//close connection to signalisation
+				//close connection to signaling server
 				socket.close();
 				//update ui
 				document.getElementById('contacts').style.display = 'none';
@@ -581,7 +581,7 @@ window.addEventListener(
 				var message = JSON.parse(event.data);
 				//document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
 				if(message.type === 'chunk') {
-					//concat chunks together
+					//concatenate chunks together
 					current_file_content.push(new Uint8Array(Array.prototype.map.call(message.data, function(c) {return c.charCodeAt(0);})));
 					var progress = current_file_message_ui.querySelector('progress');
 					//create download link when all data have arrived
