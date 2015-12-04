@@ -9,6 +9,11 @@ Node.prototype.clear = function() {
 	//allow chain
 	return this;
 };
+Node.prototype.appendChilds = function(childs) {
+	childs.forEach(Node.prototype.appendChild, this);
+	//allow chain
+	return this;
+};
 /*Node.prototype.up = function(tag) {
 	if(this.parentNode.nodeName.toLowerCase() === tag.toLowerCase()) {
 		return this.parentNode;
@@ -81,34 +86,74 @@ HTMLElement.prototype.getPosition = function() {
 	return position;
 };
 
+//HTMLFormElement
+HTMLFormElement.prototype.disable = function() {
+	this.elements.forEach(HTMLElement.prototype.setAttribute.callbackize('disabled', 'disabled'));
+};
+
+HTMLFormElement.prototype.enable = function() {
+	this.elements.forEach(HTMLElement.prototype.removeAttribute.callbackize('disabled'));
+};
+
 //HTMLSelectElement
-HTMLSelectElement.prototype.fill = function(entries, blank_option, selected_entries) {
+HTMLSelectElement.prototype.fill = function(entries, blank_entry, selected_entries) {
 	//transform entries if an array has been provided
 	var options;
 	if(Array.isArray(entries)) {
 		options = {};
-		var i = 0, length = entries.length;
+		var i = 0, length = entries.length, entry;
 		for(; i < length; i++) {
-			options[entries[i]] = entries[i];
+			//html options can only be strings
+			entry = entries[i] + '';
+			options[entry] = entry;
 		}
 	}
 	else {
-		options = entries;
+		options = Object.clone(entries);
 	}
 	//transform selected entries
-	var selected_options = selected_entries ? Array.isArray(selected_entries) ? selected_entries : [selected_entries] : undefined;
-	//clear and fill select
-	this.clear();
-	//add blank options
-	if(blank_option) {
-		this.appendChild(document.createElement('option'));
+	var selected_options = selected_entries ? Array.isArray(selected_entries) ? selected_entries : [selected_entries] : [];
+	//clean and update existing options
+	var children = Array.prototype.slice.call(this.childNodes);
+	for(var i = 0; i < children.length; i++) {
+		var option = children[i];
+		//do not manage empty option here
+		if(option.value) {
+			//remove option if it is no more needed
+			if(!options.hasOwnProperty(option.value)) {
+				this.removeChild(option);
+			}
+			//remove option from list of options to add
+			else {
+				delete options[option.value];
+			}
+		}
+		//unselect or select option according to new selection
+		if(!selected_options.contains(option.value)) {
+			option.removeAttribute('selected');
+		}
+		else {
+			option.setAttribute('selected', 'selected');
+		}
 	}
-	//add other options
+	//manage blank option
+	//look for current blank option
+	var blank_option = this.childNodes.find(function(option) {return !option.value;});
+	//remove blank option if it has been found and is not needed
+	if(blank_option && !blank_entry) {
+		this.removeChild(blank_option);
+	}
+	//add blank option if it has not been found and is needed
+	else if(!blank_option && blank_entry) {
+		this.insertBefore(document.createElement('option'), this.firstChild);
+	}
+	//add missing options
+	//TODO do not append missing options at the end of the list
 	var properties;
 	for(var option in options) {
 		if(options.hasOwnProperty(option)) {
 			properties = {value : option};
-			if(selected_options && selected_options.contains(properties.value)) {
+			if(selected_options.contains(properties.value)) {
 				properties.selected = 'selected';
 			}
 			this.appendChild(document.createFullElement('option', properties, options[option]));
@@ -117,7 +162,7 @@ HTMLSelectElement.prototype.fill = function(entries, blank_option, selected_entr
 	//allow chain
 	return this;
 };
-HTMLSelectElement.prototype.fillObjects = function(objects, value_property, label_property, blank_option, selected_entries) {
+HTMLSelectElement.prototype.fillObjects = function(objects, value_property, label_property, blank_entry, selected_entries) {
 	var entries = {};
 	var i = 0, length = objects.length;
 	for(; i < length; i++) {
@@ -126,8 +171,12 @@ HTMLSelectElement.prototype.fillObjects = function(objects, value_property, labe
 		var label = Function.isFunction(label_property) ? label_property.call(object) : object[label_property];
 		entries[value] = label;
 	}
-	return this.fill(entries, blank_option, selected_entries);
+	return this.fill(entries, blank_entry, selected_entries);
 };
+
+//HTMLDataListElement
+HTMLDataListElement.prototype.fill = HTMLSelectElement.prototype.fill;
+HTMLDataListElement.prototype.fillObjects = HTMLSelectElement.prototype.fillObjects;
 
 //HTMLCollection
 HTMLCollection.prototype.indexOf = Array.prototype.indexOf;
@@ -144,7 +193,7 @@ Storage.prototype.setObject = function(key, value) {
 };
 Storage.prototype.getObject = function(key) {
 	var item = this.getItem(key);
-	return item ? JSON.parse(item) : null;
+	return item ? JSON.parse(item) : undefined;
 };
 
 //Event
@@ -154,4 +203,3 @@ Event.stop = function(event) {
 		event.preventDefault();
 	}
 };
-
