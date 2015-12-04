@@ -13,24 +13,6 @@ var socket;
 var users = [];
 var calls = [];
 
-UI.ShowError = (function() {
-	var error_timeout;
-
-	return function(error, time) {
-		//clear previous if any
-		if(error_timeout) {
-			clearTimeout(error_timeout);
-		}
-		var error_container = document.getElementById('error');
-		error_container.textContent = error;
-		if(time) {
-			error_timeout = setTimeout(function() {
-				error_container.textContent = '';
-			}, time);
-		}
-	};
-})();
-
 window.addEventListener(
 	'unload',
 	function() {
