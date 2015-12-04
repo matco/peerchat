@@ -7,15 +7,6 @@ var getUserMedia = navigator.webkitGetUserMedia ? navigator.webkitGetUserMedia.b
 
 var CHUNK_SIZE = 100 * 1000;
 
-//TODO improve this
-function guid() {
-	var uid = '';
-	for(var i = 0; i < 16; i++) {
-		uid += Math.floor(Math.random() * 16).toString(16);
-	}
-	return uid;
-}
-
 var server;
 var user;
 var socket;
@@ -57,7 +48,7 @@ window.addEventListener(
 			user = sessionStorage.getObject('user');
 		}
 		else {
-			user = {id : guid(), name : ''};
+			user = {id : UUID.Generate(), name : ''};
 		}
 		users.push(user);
 
@@ -224,13 +215,13 @@ window.addEventListener(
 
 		function user_call() {
 			//check if there is not already an existing call with this user
-			try {
-				calls.find(function(call) {
-					return call.caller === this.user.id || call.recipient === this.user.id;
-				}, this);
+			var existing_call = calls.find(function(call) {
+				return call.caller === this.user.id || call.recipient === this.user.id;
+			}, this);
+			if(existing_call) {
 				UI.ShowError('You\'re already chatting with ' + this.user.name, 3000);
 			}
-			catch(exception) {
+			else {
 				var call = place_call(this.user.id);
 				create_call_ui(call);
 			}
@@ -265,26 +256,21 @@ window.addEventListener(
 					if(signal.type === 'call') {
 						//call can be an incoming call or informations about an occurring call
 						if(signal.hasOwnProperty('action')) {
-							try {
-								var call = calls.find(Array.objectFilter({id : signal.call.id}));
-								//only caller needs to set remove description here
-								if(call.caller === user.id) {
-									//disable ui
-									document.getElementById(call.id).parentNode.removeChild(document.getElementById(call.id));
-									//show message
-									UI.ShowError(get_username(call.recipient) + ' declines your call', 3000);
-								}
-							}
-							catch(exception) {
-								//nothing to do, user has declined the call
+							var call = calls.find(Array.objectFilter({id : signal.call.id}));
+							//if call is not found, there is nothing to do, user has declined the call
+							//only caller needs to set remove description here
+							if(call && call.caller === user.id) {
+								//disable ui
+								document.getElementById(call.id).parentNode.removeChild(document.getElementById(call.id));
+								//show message
+								UI.ShowError(get_username(call.recipient) + ' declines your call', 3000);
 							}
 						}
 						else if(signal.hasOwnProperty('sdp')) {
-							try {
-								var call = calls.find(Array.objectFilter({id : signal.call.id}));
-								//only caller needs to set remove description here
+							var call = calls.find(Array.objectFilter({id : signal.call.id}));
+							//only caller needs to set remove description here
+							if(call) {
 								if(call.caller === user.id) {
-									console.log(signal.sdp);
 									call.peer.setRemoteDescription(
 										new RTCSessionDescription(signal.sdp),
 										function() {
@@ -298,7 +284,7 @@ window.addEventListener(
 									document.getElementById(call.id).querySelectorAll('input,button').forEach(HTMLElement.prototype.removeAttribute.callbackize('disabled'));
 								}
 							}
-							catch(exception) {
+							else {
 								//console.log(exception);
 								var call = signal.call;
 								call.is_caller = false;
@@ -314,21 +300,16 @@ window.addEventListener(
 						}
 						//ice candidate
 						else if(signal.hasOwnProperty('candidate')) {
-							try {
-								var candidate = new RTCIceCandidate(signal.candidate);
-								//find associated call
-								var call = calls.find(Array.objectFilter({id : signal.call.id}));
-								//call may have already been answered
-								if(call.peer) {
-									call.peer.addIceCandidate(candidate);
-								}
-								//if call has not been answered, candidate is stored temporarily in the call
-								else {
-									call.candidate = candidate;
-								}
+							var candidate = new RTCIceCandidate(signal.candidate);
+							//find associated call
+							var call = calls.find(Array.objectFilter({id : signal.call.id}));
+							//call may have already been answered
+							if(call.peer) {
+								call.peer.addIceCandidate(candidate);
 							}
-							catch(exception) {
-								console.log(exception.message);
+							//if call has not been answered, candidate is stored temporarily in the call
+							else {
+								call.candidate = candidate;
 							}
 						}
 					}
@@ -465,7 +446,7 @@ window.addEventListener(
 
 		function place_call(user_id) {
 			var call = {
-				id : guid(),
+				id : UUID.Generate(),
 				is_caller : true,
 				caller : user.id,
 				recipient : user_id,
