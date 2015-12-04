@@ -7,6 +7,11 @@ var peers = [];
 
 var PORT = process.env.PORT || 1337;
 
+if(!Function.isFunction) {
+	Function.isFunction = function(object) {
+		return {}.toString.call(object) === '[object Function]';
+	};
+}
 //prototype
 String.prototype.leftPad = function(length, pad) {
 	//clone string
