@@ -150,12 +150,11 @@ websocket_server.on('connection', function(connection) {
 					});
 					break;
 				case 'call' :
-					//send message to peers involved in the call
-					peers.filter(function(p) {
-						return p.user.id === content.call.recipient || p.user.id === content.call.caller;
-					}).forEach(function(p) {
-						p.connection.send(message, send_callback);
+					//send message to recipient peer designated in the message
+					var recipient = peers.find(function(p) {
+						return p.user.id === content.recipient;
 					});
+					recipient.connection.send(message, send_callback);
 			}
 		}
 	});

@@ -172,7 +172,7 @@ window.addEventListener(
 		}
 
 		function create_call_ui(call) {
-			var call_ui = document.getElementById('call').cloneNode();
+			var call_ui = document.getElementById('call').cloneNode(true);
 			call_ui.call = call;
 			call_ui.id = call.id;
 			//find penpal
@@ -410,7 +410,7 @@ window.addEventListener(
 				var incoming_call = document.getElementById('incoming_call');
 				incoming_call.style.display = 'none';
 				var call = incoming_call.call;
-				socket.sendObject({type : 'call', action : 'decline', call : sanitize_call(call)});
+				socket.sendObject({type : 'call', action : 'decline', recipient : call.caller, call : sanitize_call(call)});
 			}
 		);
 
@@ -422,21 +422,16 @@ window.addEventListener(
 				var call = incoming_call.call;
 				//create peer
 				add_peer(call);
-				try {
-					//setRemoteDescription (RTCSessionDescription description, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
-					call.peer.setRemoteDescription(
-						new RTCSessionDescription(call.sdp),
-						function() {
-							add_media(call);
-						},
-						function(error) {
-							console.log(error);
-						}
-					);
-				}
-				catch(exception) {
-					console.log(exception.message);
-				}
+				//setRemoteDescription (RTCSessionDescription description, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
+				call.peer.setRemoteDescription(
+					new RTCSessionDescription(call.sdp),
+					function() {
+						add_media(call);
+					},
+					function(error) {
+						console.log(error);
+					}
+				);
 				//add ice candidate if it has already been received
 				if(call.candidate) {
 					call.peer.addIceCandidate(call.candidate);
@@ -463,9 +458,12 @@ window.addEventListener(
 			peer.onicecandidate = function(event) {
 				if(event.candidate !== null) {
 					console.log('peer ice candidate', event);
-					socket.sendObject({type : 'call', candidate : event.candidate, call : sanitize_call(call)});
-					//On Chrome, multiple ICE candidates are usually found, we only need one.
-					peer.onicecandidate = null;
+					//only caller choose ice candidate
+					if(call.is_caller) {
+						socket.sendObject({type : 'call', candidate : event.candidate, recipient : call.recipient, call : sanitize_call(call)});
+						//multiple ICE candidates are usually found, only one is needed
+						peer.onicecandidate = null;
+					}
 				}
 			};
 			peer.onopen = function() {
@@ -512,7 +510,7 @@ window.addEventListener(
 		function add_media(call) {
 			//create fake stream to launch connection
 			getUserMedia(
-				{audio : false, fake : true},
+				{audio : true, fake : true},
 				function(stream) {
 					console.log('add stream on peer');
 					call.peer.addStream(stream);
@@ -520,7 +518,8 @@ window.addEventListener(
 					function peer_got_description(description) {
 						console.log('peer got description');
 						call.peer.setLocalDescription(description);
-						socket.sendObject({type : 'call', sdp : description, call : sanitize_call(call)});
+						//send sdp description to penpal
+						socket.sendObject({type : 'call', sdp : description, recipient : call.is_caller ? call.recipient : call.caller, call : sanitize_call(call)});
 					}
 
 					function peer_didnt_get_description() {
