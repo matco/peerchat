@@ -90,80 +90,82 @@ Assert.prototype.getTotal = function() {
 
 Assert.prototype.globalize = function(object) {
 	var hook = object || window;
-	var methods = ['success', 'fail', 'equal', 'notEqual', 'ok', 'notOk', 'doesThrow', 'doesNotThrow'];
+	var methods = ['begin', 'end', 'success', 'fail', 'equal', 'notEqual', 'similar', 'notSimilar', 'defined', 'undefined', 'null', 'notNull', 'ok', 'notOk', 'doesThrow', 'doesNotThrow'];
 	for(var i = methods.length - 1; i >= 0; i--) {
 		var method = methods[i];
 		hook[method] = this[method].bind(this);
 	}
 };
 
-function log(success, message, specification) {
-	var text = success ? 'Success' : 'Fail';
-	if(message) {
-		text += ' : ';
-		text += message;
-		if(specification) {
-			text += ' - ';
-			text += specification;
+(function() {
+	function log(success, message, specification) {
+		var text = success ? 'Success' : 'Fail';
+		if(message) {
+			text += ' : ';
+			text += message;
+			if(specification) {
+				text += ' - ';
+				text += specification;
+			}
+		}
+		if(this.debug) {
+			console.log(text);
 		}
 	}
-	if(this.debug) {
-		console.log(text);
+
+	function check_has_begun() {
+		if(!this.began) {
+			throw new Error('Assert must be started before beginning testing');
+		}
 	}
-}
 
-function check_has_begun() {
-	if(!this.began) {
-		throw new Error('Assert must be started before beginning testing');
-	}
-}
+	Assert.prototype.success = function(message, specification) {
+		check_has_begun.call(this);
 
-Assert.prototype.success = function(message, specification) {
-	check_has_begun.call(this);
+		this.results.push({success : true, message : message, specification : specification});
 
-	this.results.push({success : true, message : message, specification : specification});
+		//increment counter
+		this.counters.successes++;
 
-	//increment counter
-	this.counters.successes++;
+		//log
+		log.call(this, true, message, specification);
 
-	//log
-	log.call(this, true, message, specification);
+		//callback
+		if(this.onsuccess) {
+			this.onsuccess.call(undefined, message, specification);
+		}
+	};
 
-	//callback
-	if(this.onsuccess) {
-		this.onsuccess.call(undefined, message, specification);
-	}
-};
+	Assert.prototype.fail = function(message, specification) {
+		check_has_begun.call(this);
 
-Assert.prototype.fail = function(message, specification) {
-	check_has_begun.call(this);
+		this.results.push({success : false, message : message, specification : specification});
 
-	this.results.push({success : false, message : message, specification : specification});
+		//increment counter
+		this.counters.fails++;
 
-	//increment counter
-	this.counters.fails++;
+		//log
+		log.call(this, false, message, specification);
 
-	//log
-	log.call(this, false, message, specification);
-
-	//callback
-	if(this.onfail) {
-		this.onfail.call(undefined, message, specification);
-	}
-};
+		//callback
+		if(this.onfail) {
+			this.onfail.call(undefined, message, specification);
+		}
+	};
+})();
 
 Assert.prototype.equal = function(actual, expected, message, specification) {
-	actual === expected ? this.success(message, specification) : this.fail(message + ' : Actual [' + actual + '] - Expected [' + expected + ']', specification);
+	actual === expected ? this.success(message, specification) : this.fail(message + ': Actual [' + actual + '] - Expected [' + expected + ']', specification);
 };
 Assert.prototype.notEqual = function(actual, notExpected, message, specification) {
-	actual !== notExpected ? this.success(message, specification) : this.fail(message + ' : Actual [' + actual + '] - Not expected [' + notExpected + ']', specification);
+	actual !== notExpected ? this.success(message, specification) : this.fail(message + ': Actual [' + actual + '] - Not expected [' + notExpected + ']', specification);
 };
 
 Assert.prototype.similar = function(actual, expected, message, specification) {
-	Object.equals(actual, expected) ? this.success(message, specification) : this.fail(message + ' : Actual [' + actual + '] - Expected [' + expected + ']', specification);
+	Object.equals(actual, expected) ? this.success(message, specification) : this.fail(message + ': Actual [' + actual + '] - Expected [' + expected + ']', specification);
 };
 Assert.prototype.notSimilar = function(actual, notExpected, message, specification) {
-	!Object.equals(actual, expected) ? this.success(message, specification) : this.fail(message + ' : Actual [' + actual + '] - Not expected [' + notExpected + ']', specification);
+	!Object.equals(actual, notExpected) ? this.success(message, specification) : this.fail(message + ': Actual [' + actual + '] - Not expected [' + notExpected + ']', specification);
 };
 
 Assert.prototype.defined = function(value, message, specification) {
@@ -193,26 +195,31 @@ Assert.prototype.doesThrow = function(block, exception_assert, message, specific
 		this.fail(message || 'Code does not throw an exception', specification);
 	}
 	catch(exception) {
-		if(!exception_assert || exception_assert.call(exception)) {
+		if(!exception_assert) {
 			this.success(message || 'Code throws an exception', specification);
 		}
+		//check exception matches criteria
 		else {
-			this.fail(message || ('Code does not throw the good exception : Actual [' + exception.constructor + '] - Expected [' + error + ']', specification));
+			var check = exception_assert.call(exception);
+			if(check === undefined) {
+				this.fail(message + ': Exception assert must return a boolean', specification);
+			}
+			else if(check) {
+				this.success(message || 'Code throws an exception matching criteria', specification);
+			}
+			else {
+				this.fail(message + ': Code does not throw the good exception: Actual [' + exception + ']', specification);
+			}
 		}
 	}
 };
 
-Assert.prototype.doesNotThrow = function(block, exception_assert, message, specification) {
+Assert.prototype.doesNotThrow = function(block, message, specification) {
 	try {
 		block.call();
 		this.success(message || 'Code does not throw an exception', specification);
 	}
 	catch(exception) {
-		if(!exception_assert || exception_assert.call(exception)) {
-			this.fails(message || 'Code throws an exception', specification);
-		}
-		else {
-			this.success(message || 'Code throw a different exception', specification);
-		}
+		this.fail(message + ': Code throws an exception: ' + exception, specification);
 	}
 };
