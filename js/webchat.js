@@ -258,7 +258,7 @@ window.addEventListener(
 						if(signal.hasOwnProperty('action')) {
 							var call = calls.find(Array.objectFilter({id : signal.call.id}));
 							//if call is not found, there is nothing to do, user has declined the call
-							//only caller needs to set remove description here
+							//only caller needs to set remote description here
 							if(call && call.caller === user.id) {
 								//disable ui
 								document.getElementById(call.id).parentNode.removeChild(document.getElementById(call.id));
@@ -457,7 +457,7 @@ window.addEventListener(
 			var peer = new RTCPeerConnection({iceServers : [{url : 'stun:stun.l.google.com:19302'}]}, {optional: [{DtlsSrtpKeyAgreement : true}, {RtpDataChannels : true}]});
 			peer.onicecandidate = function(event) {
 				if(event.candidate !== null) {
-					console.log('peer ice candidate', event);
+					console.log('on peer ice candidate', event);
 					//only caller choose ice candidate
 					if(call.is_caller) {
 						socket.sendObject({type : 'call', candidate : event.candidate, recipient : call.recipient, call : sanitize_call(call)});
@@ -466,33 +466,16 @@ window.addEventListener(
 					}
 				}
 			};
-			peer.onopen = function() {
-				console.log('peer open');
+			peer.onopen = function(event) {
+				console.log('on peer open', event);
 			};
 			peer.ondatachannel = function(event) {
-				console.log('peer channel');
+				console.log('on peer channel', event);
 				call.channel = event.channel;
 				manage_channel(call);
 			};
-			peer.onconnection = function() {
-				console.log('peer connection');
-				/*var channel = peer.createDataChannel('configs', {});
-				//channel.binaryType = 'blob';
-
-				channel.onmessage = function(event) {
-					console.log('channel on message ' + event);
-					document.getElementById('transfer_user_files').appendChild(document.createFullElement('li', {}, event.data));
-					if(event.data instanceof Blob) {
-						console.log('file message (size ' + event.data.size + ')');
-					}
-					else {
-						console.log('text message ' + event.data.size);
-					}
-				};
-
-				channel.onopen = function() {
-					channel.send('Hello');
-				};*/
+			peer.onconnection = function(event) {
+				console.log('on peer connection', event);
 			};
 			peer.onclosedconnection = function() {
 				//disable ui
@@ -502,7 +485,7 @@ window.addEventListener(
 				UI.ShowError(get_username(penpal_id) + ' ends the chat', 5000);
 			};
 			peer.onaddstream = function() {
-				console.log('peer add stream');
+				console.log('on peer add stream');
 			};
 			call.peer = peer;
 		}
@@ -516,14 +499,14 @@ window.addEventListener(
 					call.peer.addStream(stream);
 
 					function peer_got_description(description) {
-						console.log('peer got description');
+						console.log('on peer got description', description);
 						call.peer.setLocalDescription(description);
 						//send sdp description to penpal
 						socket.sendObject({type : 'call', sdp : description, recipient : call.is_caller ? call.recipient : call.caller, call : sanitize_call(call)});
 					}
 
 					function peer_didnt_get_description() {
-						console.log('peer did not get description');
+						console.log('on peer did not get description');
 					}
 
 					if(call.is_caller) {
@@ -543,7 +526,7 @@ window.addEventListener(
 					}
 				},
 				function(error) {
-					console.log('getUserMedia error', error);
+					console.log('Error while asking for user media', error);
 				}
 			);
 		}
@@ -554,7 +537,7 @@ window.addEventListener(
 
 		function manage_channel(call) {
 			call.channel.onopen = function(event) {
-				console.log('channel open', event);
+				console.log('on channel open', event);
 				document.getElementById(call.id).style.display = 'block';
 			};
 			call.channel.onmessage = function(event) {
@@ -598,23 +581,9 @@ window.addEventListener(
 				}
 			};
 			call.channel.onclose = function(event) {
-				console.log('channel close', event);
+				console.log('on channel close', event);
 				//document.getElementById(call.id).style.display = 'none';
 			};
 		}
-
-		/*document.getElementById('transfer_data_ready').addEventListener(
-			'click',
-			function() {
-				if(peer_is_caller) {
-					console.log('connect data connection peer_is_caller');
-					peer.connectDataConnection(5000, 5001);
-				}
-				else {
-					console.log('connect data connection peer_is_ not caller');
-					peer.connectDataConnection(5001, 5000);
-				}
-			}
-		);*/
 	}
 );
