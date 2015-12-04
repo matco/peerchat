@@ -23,13 +23,19 @@ Array.objectFilter = function(properties) {
 	return function(object) {
 		for(var property in properties) {
 			if(properties.hasOwnProperty(property)) {
-				var object_value = Function.isFunction(object[property]) ? object[property].call(object) : object[property];
+				//if object property is a function, call it only if the asked value is not a function too
+				var object_value = Function.isFunction(object[property]) && !Function.isFunction(properties[property]) ? object[property].call(object) : object[property];
 				if(object_value !== properties[property]) {
 					return false;
 				}
 			}
 		}
 		return true;
+	};
+};
+Array.objectMap = function(property) {
+	return function(object) {
+		return Function.isFunction(object[property]) ? object[property].call(object) : object[property];
 	};
 };
 Array.prototype.removeElement = function(element) {
@@ -109,10 +115,6 @@ function send_callback(error) {
 	}
 }
 
-function get_peer(connection) {
-	return peers.find(function(peer) {return peer.connection === connection;});
-}
-
 websocket_server.on('connection', function(connection) {
 	console.log(new Date().toFullDisplay() + ' New peer connected');
 
@@ -127,27 +129,28 @@ websocket_server.on('connection', function(connection) {
 		if(!flags.binary) {
 			console.log(new Date().toFullDisplay() + ' Message received ' + message);
 			var content = JSON.parse(message);
-			//some messages need special handling
-			if(content.type === 'connection') {
-				peer.user = content.user;
-				//find other peers
-				var other_peers = peers.filter(function(p) {
-					return p.connection !== connection;
-				});
-				//return peers list to peer
-				connection.send(JSON.stringify({type : 'connection', users : other_peers.map(function(peer) {return peer.user;})}));
-				//broadcast message to all other connected peers
-				other_peers.forEach(function(p) {
-					p.connection.send(message, send_callback);
-				});
-			}
-			else if(content.type === 'call') {
-				//send message to peers involved in the call
-				peers.filter(function(p) {
-					return p.user.id === content.call.recipient || p.user.id === content.call.caller;
-				}).forEach(function(p) {
-					p.connection.send(message, send_callback);
-				});
+			switch(content.type) {
+				case 'connection' :
+					peer.user = content.user;
+					//find other peers
+					var other_peers = peers.filter(function(p) {
+						return p.connection !== connection;
+					});
+					//return peers list to peer
+					var response = {type : 'connection', users : other_peers.map(Array.objectMap('user'))};
+					connection.send(JSON.stringify(response));
+					//broadcast message to all other connected peers
+					other_peers.forEach(function(p) {
+						p.connection.send(message, send_callback);
+					});
+					break;
+				case 'call' :
+					//send message to peers involved in the call
+					peers.filter(function(p) {
+						return p.user.id === content.call.recipient || p.user.id === content.call.caller;
+					}).forEach(function(p) {
+						p.connection.send(message, send_callback);
+					});
 			}
 		}
 	});
