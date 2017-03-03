@@ -1,6 +1,6 @@
 'use strict';
 
-var CHUNK_SIZE = 100 * 1000;
+const CHUNK_SIZE = 100 * 1000;
 
 var server;
 var user;
@@ -30,7 +30,7 @@ window.addEventListener(
 		users.push(user);
 
 		function get_username(user_id) {
-			return users.find(Array.objectFilter({id : user_id})).name;
+			return users.find(u => u.id === user_id).name;
 		}
 
 		//fill login form
@@ -192,9 +192,7 @@ window.addEventListener(
 
 		function user_call() {
 			//check if there is not already an existing call with this user
-			var existing_call = calls.find(function(call) {
-				return call.caller === this.user.id || call.recipient === this.user.id;
-			}, this);
+			var existing_call = calls.some(c => c.caller === this.user.id || c.recipient === this.user.id);
 			if(existing_call) {
 				UI.ShowError('You\'re already chatting with ' + this.user.name, 3000);
 			}
@@ -233,7 +231,7 @@ window.addEventListener(
 					if(signal.type === 'call') {
 						//call can be an incoming call or informations about an occurring call
 						if(signal.hasOwnProperty('action')) {
-							var call = calls.find(Array.objectFilter({id : signal.call.id}));
+							var call = calls.find(c => c.id === signal.call.id);
 							//if call is not found, there is nothing to do, user has declined the call
 							//only caller needs to set remote description here
 							if(call && call.caller === user.id) {
@@ -244,7 +242,7 @@ window.addEventListener(
 							}
 						}
 						else if(signal.hasOwnProperty('sdp')) {
-							var call = calls.find(Array.objectFilter({id : signal.call.id}));
+							var call = calls.find(c => c.id === signal.call.id);
 							//only caller needs to set remove description here
 							if(call) {
 								if(call.caller === user.id) {
@@ -279,7 +277,7 @@ window.addEventListener(
 						else if(signal.hasOwnProperty('candidate')) {
 							var candidate = new RTCIceCandidate(signal.candidate);
 							//find associated call
-							var call = calls.find(Array.objectFilter({id : signal.call.id}));
+							var call = calls.find(c => c.id === signal.call.id);
 							//call may have already been answered
 							if(call.peer) {
 								call.peer.addIceCandidate(candidate);
@@ -308,7 +306,7 @@ window.addEventListener(
 							//leaving user
 							else {
 								users.removeElement(signal.user);
-								var child = users_ui.children.find(function(child) {return child.user.id === signal.user.id});
+								var child = users_ui.children.find(c => c.user.id === signal.user.id);
 								users_ui.removeChild(child);
 								UI.Notify(signal.user.name + ' left');
 							}
