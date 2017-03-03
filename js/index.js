@@ -1,10 +1,5 @@
 'use strict';
 
-var RTCPeerConnection = window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-var RTCSessionDescription = window.RTCSessionDescription || window.webkitRTCSessionDescription || window.mozRTCSessionDescription;
-var RTCIceCandidate = window.RTCIceCandidate || window.webkitRTCIceCandidate || window.mozRTCIceCandidate;
-var getUserMedia = navigator.webkitGetUserMedia ? navigator.webkitGetUserMedia.bind(navigator) : navigator.mozGetUserMedia.bind(navigator);
-
 var CHUNK_SIZE = 100 * 1000;
 
 var server;
@@ -436,7 +431,7 @@ window.addEventListener(
 		}
 
 		function add_peer(call) {
-			var peer = new RTCPeerConnection({iceServers : [{url : 'stun:stun.l.google.com:19302'}]}, {optional: [{DtlsSrtpKeyAgreement : true}, {RtpDataChannels : true}]});
+			var peer = new RTCPeerConnection({iceServers : [{urls : ['stun:stun.l.google.com:19302']}]}, {optional: [{DtlsSrtpKeyAgreement : true}, {RtpDataChannels : true}]});
 			peer.onicecandidate = function(event) {
 				if(event.candidate !== null) {
 					console.log('on peer ice candidate', event);
@@ -466,19 +461,18 @@ window.addEventListener(
 				var penpal_id = user.id === call.caller ? call.recipient : call.caller;
 				UI.ShowError(get_username(penpal_id) + ' ends the chat', 5000);
 			};
-			peer.onaddstream = function() {
-				console.log('on peer add stream');
+			peer.ontrack = function() {
+				console.log('on peer add track');
 			};
 			call.peer = peer;
 		}
 
 		function add_media(call) {
 			//create fake stream to launch connection
-			getUserMedia(
-				{audio : true, fake : true},
+			navigator.mediaDevices.getUserMedia({audio : true, fake : true}).then(
 				function(stream) {
 					console.log('add stream on peer');
-					call.peer.addStream(stream);
+					call.peer.addTrack(stream.getTracks()[0], stream);
 
 					function peer_got_description(description) {
 						console.log('on peer got description', description);
