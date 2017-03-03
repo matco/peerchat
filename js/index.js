@@ -431,7 +431,7 @@ window.addEventListener(
 		}
 
 		function add_peer(call) {
-			var peer = new RTCPeerConnection({iceServers : [{urls : ['stun:stun.l.google.com:19302']}]}, {optional: [{DtlsSrtpKeyAgreement : true}, {RtpDataChannels : true}]});
+			var peer = new RTCPeerConnection({iceServers : [{urls : ['stun:stun.l.google.com:19302']}]});
 			peer.onicecandidate = function(event) {
 				if(event.candidate !== null) {
 					console.log('on peer ice candidate', event);
@@ -468,43 +468,32 @@ window.addEventListener(
 		}
 
 		function add_media(call) {
-			//create fake stream to launch connection
-			navigator.mediaDevices.getUserMedia({audio : true, fake : true}).then(
-				function(stream) {
-					console.log('add stream on peer');
-					call.peer.addTrack(stream.getTracks()[0], stream);
+			function peer_got_description(description) {
+				console.log('on peer got description', description);
+				call.peer.setLocalDescription(description);
+				//send sdp description to penpal
+				socket.sendObject({type : 'call', sdp : description, recipient : call.is_caller ? call.recipient : call.caller, call : sanitize_call(call)});
+			}
 
-					function peer_got_description(description) {
-						console.log('on peer got description', description);
-						call.peer.setLocalDescription(description);
-						//send sdp description to penpal
-						socket.sendObject({type : 'call', sdp : description, recipient : call.is_caller ? call.recipient : call.caller, call : sanitize_call(call)});
-					}
+			function peer_didnt_get_description() {
+				console.log('on peer did not get description');
+			}
 
-					function peer_didnt_get_description() {
-						console.log('on peer did not get description');
-					}
-
-					if(call.is_caller) {
-						console.log('create channel chat');
-						//channel may need to be created before the offer
-						call.channel = call.peer.createDataChannel('chat'); //, {reliable : false});
-						manage_channel(call);
-						//createOffer (RTCSessionDescriptionCallback successCallback, RTCPeerConnectionErrorCallback failureCallback, optional MediaConstraints constraints);
-						call.peer.createOffer(peer_got_description, peer_didnt_get_description);
-					}
-					else {
-						//createAnswer (RTCSessionDescriptionCallback successCallback, RTCPeerConnectionErrorCallback failureCallback, optional MediaConstraints constraints);
-						call.peer.createAnswer(peer_got_description, peer_didnt_get_description);
-						//create and activate ui
-						create_call_ui(call);
-						document.getElementById(call.id).querySelectorAll('input,button').forEach(HTMLElement.prototype.removeAttribute.callbackize('disabled'));
-					}
-				},
-				function(error) {
-					console.log('Error while asking for user media', error);
-				}
-			);
+			if(call.is_caller) {
+				console.log('create channel chat');
+				//channel may need to be created before the offer
+				call.channel = call.peer.createDataChannel('chat'); //, {reliable : false});
+				manage_channel(call);
+				//createOffer (RTCSessionDescriptionCallback successCallback, RTCPeerConnectionErrorCallback failureCallback, optional MediaConstraints constraints);
+				call.peer.createOffer(peer_got_description, peer_didnt_get_description);
+			}
+			else {
+				//createAnswer (RTCSessionDescriptionCallback successCallback, RTCPeerConnectionErrorCallback failureCallback, optional MediaConstraints constraints);
+				call.peer.createAnswer(peer_got_description, peer_didnt_get_description);
+				//create and activate ui
+				create_call_ui(call);
+				document.getElementById(call.id).querySelectorAll('input,button').forEach(HTMLElement.prototype.removeAttribute.callbackize('disabled'));
+			}
 		}
 
 		var current_file_content;
