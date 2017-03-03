@@ -1,0 +1,25 @@
+{
+  "name": "peerchat",
+  "description": "Chat in P2P",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Matthieu Corageoud",
+    "email": "matthieu.corageoud@gmail.com"
+  },
+  "license": "Unlicense",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matco/peerchat.git"
+  },
+  "bugs": {
+    "url": "https://github.com/matco/peerchat/issues"
+  },
+  "dependencies": {
+    "ws": "^2.2.0"
+  }
+}
