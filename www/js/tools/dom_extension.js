@@ -1,5 +1,21 @@
 'use strict';
 
+//Generic
+['indexOf', 'first', 'last', 'isEmpty', 'includes', 'slice', 'sort', 'forEach', 'map', 'find', 'filter', 'every', 'some'].forEach(function(method) {
+	//NodeList
+	if(!NodeList.prototype.hasOwnProperty(method)) {
+		NodeList.prototype[method] = Array.prototype[method];
+	}
+	//DOMStringList
+	if(!DOMStringList.prototype.hasOwnProperty(method)) {
+		DOMStringList.prototype[method] = Array.prototype[method];
+	}
+	//HTMLCollection
+	if(!HTMLCollection.prototype.hasOwnProperty(method)) {
+		HTMLCollection.prototype[method] = Array.prototype[method];
+	}
+});
+
 //DOM
 //Node
 Node.prototype.clear = function() {
@@ -9,8 +25,8 @@ Node.prototype.clear = function() {
 	//allow chain
 	return this;
 };
-Node.prototype.appendChilds = function(childs) {
-	childs.forEach(Node.prototype.appendChild, this);
+Node.prototype.appendChildren = function(children) {
+	children.forEach(Node.prototype.appendChild, this);
 	//allow chain
 	return this;
 };
@@ -21,26 +37,19 @@ Node.prototype.appendChilds = function(childs) {
 	return this.parentNode.up(tag);
 };*/
 
-//NodeList
-/*for(property in Array.prototype) {
-	if(Array.prototype.hasOwnProperty(property) && typeof(Array.prototype[property]) === 'function') {
-		console.log(property);
-		NodeList.prototype[property] = Array.prototype[property];
-	}
-}*/
-NodeList.prototype.indexOf = Array.prototype.indexOf;
-NodeList.prototype.filter = Array.prototype.filter;
-NodeList.prototype.forEach = Array.prototype.forEach;
-NodeList.prototype.every = Array.prototype.every;
-NodeList.prototype.map = Array.prototype.map;
-NodeList.prototype.some = Array.prototype.some;
-NodeList.prototype.sort = Array.prototype.sort;
-NodeList.prototype.find = Array.prototype.find;
-
 //Element
+Element.prototype.clear = function(selector) {
+	let children = this.childNodes.slice();
+	if(selector) {
+		children = children.filter(c => c.nodeType === Node.ELEMENT_NODE && c.matches(selector));
+	}
+	children.forEach(c => this.removeChild(c));
+	//allow chain
+	return this;
+};
 Element.prototype.setAttributes = function(attributes) {
 	if(attributes) {
-		for(var attribute in attributes) {
+		for(const attribute in attributes) {
 			if(attributes.hasOwnProperty(attribute)) {
 				this.setAttribute(attribute, attributes[attribute]);
 			}
@@ -58,7 +67,7 @@ Element.prototype.setAttributes = function(attributes) {
 			element.appendChild(this.createTextNode(text));
 		}
 		if(listeners) {
-			for(var listener in listeners) {
+			for(const listener in listeners) {
 				if(listeners.hasOwnProperty(listener)) {
 					element.addEventListener(listener, listeners[listener], false);
 				}
@@ -78,9 +87,9 @@ Element.prototype.setAttributes = function(attributes) {
 //HTML
 //HTMLElement
 HTMLElement.prototype.getPosition = function() {
-	var position = {left : this.offsetLeft, top : this.offsetTop};
+	const position = {left : this.offsetLeft, top : this.offsetTop};
 	if(this.offsetParent) {
-		var parent_position = this.offsetParent.getPosition();
+		const parent_position = this.offsetParent.getPosition();
 		return {left : parent_position.left + position.left, top : parent_position.top + position.top};
 	}
 	return position;
@@ -98,13 +107,12 @@ HTMLFormElement.prototype.enable = function() {
 //HTMLSelectElement
 HTMLSelectElement.prototype.fill = function(entries, blank_entry, selected_entries) {
 	//transform entries if an array has been provided
-	var options;
+	let options;
 	if(Array.isArray(entries)) {
 		options = {};
-		var i = 0, length = entries.length, entry;
-		for(; i < length; i++) {
+		for(let i = 0; i < entries.length; i++) {
 			//html options can only be strings
-			entry = entries[i] + '';
+			const entry = entries[i] + '';
 			options[entry] = entry;
 		}
 	}
@@ -112,11 +120,11 @@ HTMLSelectElement.prototype.fill = function(entries, blank_entry, selected_entri
 		options = Object.clone(entries);
 	}
 	//transform selected entries
-	var selected_options = selected_entries ? Array.isArray(selected_entries) ? selected_entries : [selected_entries] : [];
+	const selected_options = selected_entries ? Array.isArray(selected_entries) ? selected_entries : [selected_entries] : [];
 	//clean and update existing options
-	var children = Array.prototype.slice.call(this.childNodes);
-	for(var i = 0; i < children.length; i++) {
-		var option = children[i];
+	const children = Array.prototype.slice.call(this.childNodes);
+	for(let i = 0; i < children.length; i++) {
+		const option = children[i];
 		//do not manage empty option here
 		if(option.value) {
 			//remove option if it is no more needed
@@ -129,7 +137,7 @@ HTMLSelectElement.prototype.fill = function(entries, blank_entry, selected_entri
 			}
 		}
 		//unselect or select option according to new selection
-		if(!selected_options.contains(option.value)) {
+		if(!selected_options.includes(option.value)) {
 			option.removeAttribute('selected');
 		}
 		else {
@@ -138,7 +146,7 @@ HTMLSelectElement.prototype.fill = function(entries, blank_entry, selected_entri
 	}
 	//manage blank option
 	//look for current blank option
-	var blank_option = this.childNodes.find(function(option) {return !option.value;});
+	const blank_option = this.childNodes.find(function(option) {return !option.value;});
 	//remove blank option if it has been found and is not needed
 	if(blank_option && !blank_entry) {
 		this.removeChild(blank_option);
@@ -149,11 +157,11 @@ HTMLSelectElement.prototype.fill = function(entries, blank_entry, selected_entri
 	}
 	//add missing options
 	//TODO do not append missing options at the end of the list
-	var properties;
-	for(var option in options) {
+	let properties;
+	for(const option in options) {
 		if(options.hasOwnProperty(option)) {
 			properties = {value : option};
-			if(selected_options.contains(properties.value)) {
+			if(selected_options.includes(properties.value)) {
 				properties.selected = 'selected';
 			}
 			this.appendChild(document.createFullElement('option', properties, options[option]));
@@ -163,12 +171,11 @@ HTMLSelectElement.prototype.fill = function(entries, blank_entry, selected_entri
 	return this;
 };
 HTMLSelectElement.prototype.fillObjects = function(objects, value_property, label_property, blank_entry, selected_entries) {
-	var entries = {};
-	var i = 0, length = objects.length;
-	for(; i < length; i++) {
-		var object = objects[i];
-		var value = Function.isFunction(value_property) ? value_property.call(object) : object[value_property];
-		var label = Function.isFunction(label_property) ? label_property.call(object) : object[label_property];
+	const entries = {};
+	for(let i = 0; i < objects.length; i++) {
+		const object = objects[i];
+		const value = Function.isFunction(value_property) ? value_property.call(object) : object[value_property];
+		const label = Function.isFunction(label_property) ? label_property.call(object) : object[label_property];
 		entries[value] = label;
 	}
 	return this.fill(entries, blank_entry, selected_entries);
@@ -178,21 +185,12 @@ HTMLSelectElement.prototype.fillObjects = function(objects, value_property, labe
 HTMLDataListElement.prototype.fill = HTMLSelectElement.prototype.fill;
 HTMLDataListElement.prototype.fillObjects = HTMLSelectElement.prototype.fillObjects;
 
-//HTMLCollection
-HTMLCollection.prototype.indexOf = Array.prototype.indexOf;
-HTMLCollection.prototype.filter = Array.prototype.filter;
-HTMLCollection.prototype.forEach = Array.prototype.forEach;
-HTMLCollection.prototype.every = Array.prototype.every;
-HTMLCollection.prototype.map = Array.prototype.map;
-HTMLCollection.prototype.some = Array.prototype.some;
-HTMLCollection.prototype.find = Array.prototype.find;
-
 //Storage
 Storage.prototype.setObject = function(key, value) {
 	this.setItem(key, JSON.stringify(value));
 };
 Storage.prototype.getObject = function(key) {
-	var item = this.getItem(key);
+	const item = this.getItem(key);
 	return item ? JSON.parse(item) : undefined;
 };
 
