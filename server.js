@@ -14,7 +14,7 @@ Array.prototype.removeElement = function(element) {
 	}
 };
 
-var file = new static.Server('./app');
+var file = new static.Server('./www');
 
 //create http server
 var http_server = http.createServer(function(request, response) {
