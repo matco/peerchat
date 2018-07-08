@@ -2,11 +2,11 @@
 
 const CHUNK_SIZE = 100 * 1000;
 
-var server;
-var user;
-var socket;
-var users = [];
-var calls = [];
+let server;
+let user;
+let socket;
+const users = [];
+const calls = [];
 
 window.addEventListener(
 	'unload',
@@ -34,7 +34,7 @@ window.addEventListener(
 		}
 
 		//fill login form
-		var secure = window.location.protocol.contains('s');
+		const secure = window.location.protocol.contains('s');
 		document.getElementById('connect')['server'].value = (secure ? 'wss://' : 'ws://') + window.location.host;
 		document.getElementById('connect')['username'].value = user.name;
 
@@ -50,9 +50,9 @@ window.addEventListener(
 
 		function drop(event) {
 			event.preventDefault();
-			for(var i = 0; i < event.dataTransfer.files.length; i++) {
-				var file = event.dataTransfer.files[i];
-				var message = {
+			for(let i = 0; i < event.dataTransfer.files.length; i++) {
+				const file = event.dataTransfer.files[i];
+				const message = {
 					emitter : user.id,
 					type : 'file',
 					filename : file.name,
@@ -72,7 +72,7 @@ window.addEventListener(
 					},
 					function(file) {
 						//remove progress bar
-						var progress = message_ui.querySelector('progress');
+						const progress = message_ui.querySelector('progress');
 						progress.parentNode.removeChild(progress);
 						//update message text
 						message_ui.querySelector('span.message').textContent = 'File ' + file.name + ' sent';
@@ -84,16 +84,16 @@ window.addEventListener(
 
 		function send_file(channel, file, offset, progression_callback, final_callback) {
 			//file must be cut into small chunk which are read and bundled inside a message
-			var chunk = file.slice(offset, offset += CHUNK_SIZE);
-			var end = offset > file.size;
+			const chunk = file.slice(offset, offset += CHUNK_SIZE);
+			const end = offset > file.size;
 
-			var reader = new FileReader();
+			const reader = new FileReader();
 			reader.onerror = function() {
 				UI.ShowError('Error while loading ' + file.name, 5000);
 			};
 			reader.onloadend = function(event) {
 				//console.log(reader.result);
-				var message = {
+				const message = {
 					emitter : user.id,
 					type : 'chunk',
 					offset : offset,
@@ -122,16 +122,16 @@ window.addEventListener(
 		}
 
 		function draw_message(message, callback) {
-			var message_ui = document.createFullElement('li');
-			var time = new Date(message.time);
-			var message_date_text = time.getHours().pad(2) + ':' + time.getMinutes().pad(2) + ':' + time.getSeconds().pad(2);
+			const message_ui = document.createFullElement('li');
+			const time = new Date(message.time);
+			const message_date_text = time.getHours().pad(2) + ':' + time.getMinutes().pad(2) + ':' + time.getSeconds().pad(2);
 			message_ui.appendChild(document.createFullElement('time', {}, message_date_text));
-			var is_emitter = message.emitter === user.id;
-			var user_name = is_emitter ? 'You' : get_username(message.emitter);
+			const is_emitter = message.emitter === user.id;
+			const user_name = is_emitter ? 'You' : get_username(message.emitter);
 			message_ui.appendChild(document.createFullElement('span', {'class' : 'user'}, user_name));
 			//file message
 			if(message.type === 'file') {
-				var message_content = document.createFullElement('span', {'class' : 'message'});
+				const message_content = document.createFullElement('span', {'class' : 'message'});
 				if(is_emitter) {
 					message_content.appendChild(document.createTextNode('Sending file ' + message.filename));
 				}
@@ -149,18 +149,18 @@ window.addEventListener(
 		}
 
 		function create_call_ui(call) {
-			var call_ui = document.getElementById('call').cloneNode(true);
+			const call_ui = document.getElementById('call').cloneNode(true);
 			call_ui.call = call;
 			call_ui.id = call.id;
 			//find penpal
-			var penpal_id = user.id === call.caller ? call.recipient : call.caller;
+			const penpal_id = user.id === call.caller ? call.recipient : call.caller;
 			call_ui.querySelector('[data-binding="call-username"]').textContent = get_username(penpal_id);
 			call_ui.querySelector('form').addEventListener(
 				'submit',
 				function(event) {
 					Event.stop(event);
 					//send message
-					var message = {
+					const message = {
 						emitter : user.id,
 						type : 'text',
 						data : this.message.value,
@@ -192,12 +192,12 @@ window.addEventListener(
 
 		function user_call() {
 			//check if there is not already an existing call with this user
-			var existing_call = calls.some(c => c.caller === this.user.id || c.recipient === this.user.id);
+			const existing_call = calls.some(c => c.caller === this.user.id || c.recipient === this.user.id);
 			if(existing_call) {
 				UI.ShowError('You\'re already chatting with ' + this.user.name, 3000);
 			}
 			else {
-				var call = place_call(this.user.id);
+				const call = place_call(this.user.id);
 				create_call_ui(call);
 			}
 		}
@@ -213,7 +213,7 @@ window.addEventListener(
 		}
 
 		function create_user(user) {
-			var li = document.createFullElement('li', {}, user.name);
+			const li = document.createFullElement('li', {}, user.name);
 			li.user = user;
 			li.addEventListener('click', user_call);
 			return li;
@@ -225,7 +225,7 @@ window.addEventListener(
 			socket.addEventListener(
 				'message',
 				function(event) {
-					var signal = JSON.parse(event.data);
+					const signal = JSON.parse(event.data);
 					console.log('signalisation message received', signal);
 					//call related messages
 					if(signal.type === 'call') {
@@ -267,7 +267,7 @@ window.addEventListener(
 								//add call to call list
 								calls.push(signal.call);
 								//find username
-								var username = get_username(signal.call.caller);
+								const username = get_username(signal.call.caller);
 								document.getElementById('incoming_call_user').textContent = username;
 								document.getElementById('incoming_call').call = call;
 								document.getElementById('incoming_call').style.display = 'block';
@@ -275,7 +275,7 @@ window.addEventListener(
 						}
 						//ice candidate
 						else if(signal.hasOwnProperty('candidate')) {
-							var candidate = new RTCIceCandidate(signal.candidate);
+							const candidate = new RTCIceCandidate(signal.candidate);
 							//find associated call
 							var call = calls.find(c => c.id === signal.call.id);
 							//call may have already been answered
@@ -296,7 +296,7 @@ window.addEventListener(
 							signal.users.map(create_user).forEach(Node.prototype.appendChild, document.getElementById('users'));
 						}
 						else if(signal.hasOwnProperty('user')) {
-							var users_ui = document.getElementById('users');
+							const users_ui = document.getElementById('users');
 							//arriving user
 							if(signal.action === 'login') {
 								users.push(signal.user);
@@ -306,7 +306,7 @@ window.addEventListener(
 							//leaving user
 							else {
 								users.removeElement(signal.user);
-								var child = users_ui.children.find(c => c.user.id === signal.user.id);
+								const child = users_ui.children.find(c => c.user.id === signal.user.id);
 								users_ui.removeChild(child);
 								UI.Notify(signal.user.name + ' left');
 							}
@@ -382,9 +382,9 @@ window.addEventListener(
 		document.getElementById('incoming_call_decline').addEventListener(
 			'click',
 			function() {
-				var incoming_call = document.getElementById('incoming_call');
+				const incoming_call = document.getElementById('incoming_call');
 				incoming_call.style.display = 'none';
-				var call = incoming_call.call;
+				const call = incoming_call.call;
 				socket.sendObject({type : 'call', action : 'decline', recipient : call.caller, call : sanitize_call(call)});
 			}
 		);
@@ -392,9 +392,9 @@ window.addEventListener(
 		document.getElementById('incoming_call_answer').addEventListener(
 			'click',
 			function() {
-				var incoming_call = document.getElementById('incoming_call');
+				const incoming_call = document.getElementById('incoming_call');
 				incoming_call.style.display = 'none';
-				var call = incoming_call.call;
+				const call = incoming_call.call;
 				//create peer
 				add_peer(call);
 				//setRemoteDescription (RTCSessionDescription description, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
@@ -415,7 +415,7 @@ window.addEventListener(
 		);
 
 		function place_call(user_id) {
-			var call = {
+			const call = {
 				id : UUID.Generate(),
 				is_caller : true,
 				caller : user.id,
@@ -429,7 +429,7 @@ window.addEventListener(
 		}
 
 		function add_peer(call) {
-			var peer = new RTCPeerConnection({iceServers : [{urls : ['stun:stun.l.google.com:19302']}]});
+			const peer = new RTCPeerConnection({iceServers : [{urls : ['stun:stun.l.google.com:19302']}]});
 			peer.onicecandidate = function(event) {
 				if(event.candidate !== null) {
 					console.log('on peer ice candidate', event);
@@ -456,7 +456,7 @@ window.addEventListener(
 				//disable ui
 				document.getElementById(call.id).querySelectorAll('input,button').forEach(HTMLElement.prototype.setAttribute.callbackize('disabled', 'disabled'));
 				//show error
-				var penpal_id = user.id === call.caller ? call.recipient : call.caller;
+				const penpal_id = user.id === call.caller ? call.recipient : call.caller;
 				UI.ShowError(get_username(penpal_id) + ' ends the chat', 5000);
 			};
 			peer.ontrack = function() {
@@ -494,9 +494,9 @@ window.addEventListener(
 			}
 		}
 
-		var current_file_content;
-		var current_file_message;
-		var current_file_message_ui;
+		let current_file_content;
+		let current_file_message;
+		let current_file_message_ui;
 
 		function manage_channel(call) {
 			call.channel.onopen = function(event) {
@@ -504,26 +504,26 @@ window.addEventListener(
 				document.getElementById(call.id).style.display = 'block';
 			};
 			call.channel.onmessage = function(event) {
-				var message = JSON.parse(event.data);
+				const message = JSON.parse(event.data);
 				//document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
 				if(message.type === 'chunk') {
 					//concatenate chunks together
 					current_file_content.push(new Uint8Array(Array.prototype.map.call(message.data, function(c) {return c.charCodeAt(0);})));
-					var progress = current_file_message_ui.querySelector('progress');
+					const progress = current_file_message_ui.querySelector('progress');
 					//create download link when all data have arrived
 					if(message.end) {
-						var blob = new Blob(current_file_content, {type : current_file_message.filetype});
-						var url = URL.createObjectURL(blob);
+						const blob = new Blob(current_file_content, {type : current_file_message.filetype});
+						const url = URL.createObjectURL(blob);
 						//remove progress bar
 						progress.parentNode.removeChild(progress);
 						//update message text and add link download file
-						var message_ui_message = current_file_message_ui.querySelector('span.message');
+						const message_ui_message = current_file_message_ui.querySelector('span.message');
 						message_ui_message.textContent = 'File ' + current_file_message.filename + ' transfered';
-						var message_download_file = document.createFullElement('a', {href : url, download : current_file_message.filename, style : 'margin-left: 5px;'}, 'Download');
+						const message_download_file = document.createFullElement('a', {href : url, download : current_file_message.filename, style : 'margin-left: 5px;'}, 'Download');
 						message_ui_message.appendChild(message_download_file);
 						//do something with well known mime type
 						if(current_file_message.filetype.contains('image')) {
-							var message_image = document.createFullElement('img', {src : url, alt : current_file_message.filename, title : current_file_message.filename});
+							const message_image = document.createFullElement('img', {src : url, alt : current_file_message.filename, title : current_file_message.filename});
 							current_file_message_ui.appendChild(message_image);
 						}
 					}
@@ -532,7 +532,7 @@ window.addEventListener(
 					}
 				}
 				else {
-					var message_ui = draw_message(message);
+					const message_ui = draw_message(message);
 					//keep a hook on file message ui
 					if(message.type === 'file') {
 						current_file_message = message;

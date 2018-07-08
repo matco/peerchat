@@ -2,11 +2,11 @@
 
 var UI = (function() {
 
-	var notification_close_time = 5000;
+	const notification_close_time = 5000;
 	//remember if notification permission has been requested to avoid asking to the user more than once
-	var notification_permission_requested = false;
+	let notification_permission_requested = false;
 
-	var error_close_timeout;
+	let error_close_timeout;
 
 	return {
 		Notify : function(message, options) {
@@ -20,7 +20,7 @@ var UI = (function() {
 			}
 			//use native notification
 			else {
-				var notification = new Notification(message, options);
+				const notification = new Notification(message, options);
 				notification.addEventListener('show', function() {
 					setTimeout(function() {
 						notification.close();
@@ -34,7 +34,7 @@ var UI = (function() {
 				clearTimeout(error_close_timeout);
 			}
 			//display error
-			var error_container = document.getElementById('error');
+			const error_container = document.getElementById('error');
 			error_container.textContent = error;
 			//clear automatically error after a time if asked
 			if(error_close_time) {
