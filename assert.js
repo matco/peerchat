@@ -17,42 +17,6 @@ function Assert(onsuccess, onfail, onbegin, onend, debug) {
 	};
 }
 
-Assert.prototype.getReport = function() {
-	//create xml report
-	var report = document.implementation.createDocument(null, 'report', null);
-	//add style sheet
-	report.styleSheetsSets = [{type : 'text/xsl', href : 'http://localhost/test/test.xsl'}];
-	var pi = report.createProcessingInstruction('xml-stylesheet', 'type="text/xsl" href="http://localhost/test/test.xsl"');
-	report.insertBefore(pi, report.documentElement);
-	//add some informations
-	report.documentElement.appendChild(report.createFullElement('date', {}, new Date().toFullDisplay()));
-	report.documentElement.appendChild(report.createFullElement('hostname', {}, window.navigator.userAgent));
-	report.documentElement.appendChild(report.createFullElement('platform', {}, window.navigator.platform));
-	report.documentElement.appendChild(report.createFullElement('os', {}, window.navigator.oscpu));
-	//create main structure
-	var files = report.createElement('files');
-	report.documentElement.appendChild(files);
-	var file = report.createFullElement('file', {name : 'kvconfig'});
-	files.appendChild(file);
-	var tests = report.createElement('tests');
-	file.appendChild(tests);
-
-	//complete report
-	for(var i = 0, length = this.results.length; i < length; i++) {
-		var result = this.results[i];
-		var test = report.createFullElement('test', {success : result.success});
-		if(result.message) {
-			test.appendChild(report.createFullElement('message', {}, result.message));
-			if(result.specification) {
-				test.appendChild(report.createFullElement('specification', {}, result.specification));
-			}
-		}
-		tests.appendChild(test);
-	}
-
-	return report;
-};
-
 Assert.prototype.begin = function() {
 	this.times.start = new Date();
 	this.began = true;
