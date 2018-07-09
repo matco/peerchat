@@ -229,7 +229,7 @@ window.addEventListener(
 					console.log('signalisation message received', signal);
 					//call related messages
 					if(signal.type === 'call') {
-						//call can be an incoming call or informations about an occurring call
+						//call can be an incoming call or information about an occurring call
 						if(signal.hasOwnProperty('action')) {
 							var call = calls.find(c => c.id === signal.call.id);
 							//if call is not found, there is nothing to do, user has declined the call
@@ -256,7 +256,7 @@ window.addEventListener(
 										}
 									);
 									//activate ui
-									document.getElementById(call.id).querySelectorAll('input,button').forEach(HTMLElement.prototype.removeAttribute.callbackize('disabled'));
+									document.getElementById(call.id).querySelectorAll('input,button').forEach(e => e.removeAttribute('disabled'));
 								}
 							}
 							else {
@@ -454,7 +454,7 @@ window.addEventListener(
 			};
 			peer.onclosedconnection = function() {
 				//disable ui
-				document.getElementById(call.id).querySelectorAll('input,button').forEach(HTMLElement.prototype.setAttribute.callbackize('disabled', 'disabled'));
+				document.getElementById(call.id).querySelectorAll('input,button').forEach(e => e.setAttribute('disabled', 'disabled'));
 				//show error
 				const penpal_id = user.id === call.caller ? call.recipient : call.caller;
 				UI.ShowError(get_username(penpal_id) + ' ends the chat', 5000);
@@ -490,7 +490,7 @@ window.addEventListener(
 				call.peer.createAnswer(peer_got_description, peer_didnt_get_description);
 				//create and activate ui
 				create_call_ui(call);
-				document.getElementById(call.id).querySelectorAll('input,button').forEach(HTMLElement.prototype.removeAttribute.callbackize('disabled'));
+				document.getElementById(call.id).querySelectorAll('input,button').forEach(e => e.removeAttribute('disabled'));
 			}
 		}
 
@@ -508,7 +508,7 @@ window.addEventListener(
 				//document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
 				if(message.type === 'chunk') {
 					//concatenate chunks together
-					current_file_content.push(new Uint8Array(Array.prototype.map.call(message.data, function(c) {return c.charCodeAt(0);})));
+					current_file_content.push(new Uint8Array(Array.prototype.map.call(message.data, c => c.charCodeAt(0))));
 					const progress = current_file_message_ui.querySelector('progress');
 					//create download link when all data have arrived
 					if(message.end) {
@@ -518,7 +518,7 @@ window.addEventListener(
 						progress.parentNode.removeChild(progress);
 						//update message text and add link download file
 						const message_ui_message = current_file_message_ui.querySelector('span.message');
-						message_ui_message.textContent = 'File ' + current_file_message.filename + ' transfered';
+						message_ui_message.textContent = 'File ' + current_file_message.filename + ' transferred';
 						const message_download_file = document.createFullElement('a', {href : url, download : current_file_message.filename, style : 'margin-left: 5px;'}, 'Download');
 						message_ui_message.appendChild(message_download_file);
 						//do something with well known mime type
