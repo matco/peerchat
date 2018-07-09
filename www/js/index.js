@@ -34,7 +34,7 @@ window.addEventListener(
 		}
 
 		//fill login form
-		const secure = window.location.protocol.contains('s');
+		const secure = window.location.protocol.includes('s');
 		document.getElementById('connect')['server'].value = (secure ? 'wss://' : 'ws://') + window.location.host;
 		document.getElementById('connect')['username'].value = user.name;
 
@@ -168,7 +168,7 @@ window.addEventListener(
 					};
 					call.channel.send(JSON.stringify(message));
 					//update ui
-					call_ui.querySelector('[data-binding="call-messages"]').appendChild(draw_message(message)); 
+					call_ui.querySelector('[data-binding="call-messages"]').appendChild(draw_message(message));
 					this.message.value = '';
 				}
 			);
