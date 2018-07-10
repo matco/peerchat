@@ -52,9 +52,14 @@ window.addEventListener(
 			event.preventDefault();
 			for(let i = 0; i < event.dataTransfer.files.length; i++) {
 				const file = event.dataTransfer.files[i];
+				//create new channel for file transfer
+				const fileid = UUID.Generate();
+				const file_channel = this.call.peer.createDataChannel(fileid);
+				this.call.files.push({channel : file_channel});
 				const message = {
 					emitter : user.id,
 					type : 'file',
+					fileid : fileid,
 					filename : file.name,
 					filetype : file.type,
 					filesize : file.size,
@@ -64,7 +69,7 @@ window.addEventListener(
 				var message_ui = draw_message(message);
 				this.querySelector('[data-binding="call-messages"]').appendChild(message_ui);
 				send_file(
-					this.call.channel,
+					file_channel,
 					file,
 					0,
 					function(offset) {
@@ -93,15 +98,7 @@ window.addEventListener(
 			};
 			reader.onloadend = function(event) {
 				//console.log(reader.result);
-				const message = {
-					emitter : user.id,
-					type : 'chunk',
-					offset : offset,
-					data : event.target.result,
-					end : end,
-					time : new Date().toString()
-				};
-				channel.send(JSON.stringify(message));
+				channel.send(event.target.result);
 				//continue with next chunk and call progression callback
 				if(!end) {
 					if(progression_callback) {
@@ -112,13 +109,14 @@ window.addEventListener(
 				}
 				//call final callback
 				else {
+					channel.close();
 					if(final_callback) {
 						final_callback.call(null, file);
 					}
 				}
 			};
 
-			reader.readAsBinaryString(chunk);
+			reader.readAsArrayBuffer(chunk);
 		}
 
 		function draw_message(message, callback) {
@@ -131,6 +129,8 @@ window.addEventListener(
 			message_ui.appendChild(document.createFullElement('span', {'class' : 'user'}, user_name));
 			//file message
 			if(message.type === 'file') {
+				//identify file ui
+				message_ui.setAttribute('id', message.fileid);
 				const message_content = document.createFullElement('span', {'class' : 'message'});
 				if(is_emitter) {
 					message_content.appendChild(document.createTextNode('Sending file ' + message.filename));
@@ -208,7 +208,8 @@ window.addEventListener(
 				id : call.id,
 				caller : call.caller,
 				recipient : call.recipient,
-				time : call.time
+				time : call.time,
+				files : []
 			};
 		}
 
@@ -420,7 +421,8 @@ window.addEventListener(
 				is_caller : true,
 				caller : user.id,
 				recipient : user_id,
-				time : new Date().getTime()
+				time : new Date().getTime(),
+				files : []
 			};
 			add_peer(call);
 			add_media(call);
@@ -446,8 +448,13 @@ window.addEventListener(
 			};
 			peer.ondatachannel = function(event) {
 				console.log('on peer channel', event);
-				call.channel = event.channel;
-				manage_channel(call);
+				if(event.channel.label === 'chat') {
+					call.channel = event.channel;
+					manage_channel(call);
+				}
+				else {
+					manage_file_channel(call, event.channel);
+				}
 			};
 			peer.onconnection = function(event) {
 				console.log('on peer connection', event);
@@ -494,9 +501,44 @@ window.addEventListener(
 			}
 		}
 
-		let current_file_content;
-		let current_file_message;
-		let current_file_message_ui;
+		function manage_file_channel(call, channel) {
+			channel.onopen = function(event) {
+				console.log('on file channel open', event);
+			};
+			channel.onmessage = function(event) {
+				//retrieve reference to file in call
+				const file = call.files[channel.label]
+				//concatenate chunks together
+				file.parts.push(new Blob([event.data]));
+				const current_size = file.parts.map(p => p.size).reduce((accumulator, value) => accumulator + value);
+				//retrieve ui
+				const file_ui = document.getElementById(channel.label);
+				const progress = file_ui.querySelector('progress');
+				//create download link when all data have arrived
+				if(current_size === file.size) {
+					const blob = new Blob(file.parts, {type : file.type});
+					const url = URL.createObjectURL(blob);
+					//remove progress bar
+					progress.parentNode.removeChild(progress);
+					//update message text and add link download file
+					const message_ui_message = file_ui.querySelector('span.message');
+					message_ui_message.textContent = 'File ' + file.name + ' transferred';
+					const message_download_file = document.createFullElement('a', {href : url, download : file.name, style : 'margin-left: 5px;'}, 'Download');
+					message_ui_message.appendChild(message_download_file);
+					//do something with well known mime type
+					if(file.type.includes('image')) {
+						const message_image = document.createFullElement('img', {src : url, alt : file.name, title : file.name});
+						file_ui.appendChild(message_image);
+					}
+				}
+				else {
+					progress.setAttribute('value', current_size);
+				}
+			};
+			channel.onclose = function(event) {
+				console.log('on file channel close', event);
+			};
+		}
 
 		function manage_channel(call) {
 			call.channel.onopen = function(event) {
@@ -505,43 +547,18 @@ window.addEventListener(
 			};
 			call.channel.onmessage = function(event) {
 				const message = JSON.parse(event.data);
-				//document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'visible';
-				if(message.type === 'chunk') {
-					//concatenate chunks together
-					current_file_content.push(new Uint8Array(Array.prototype.map.call(message.data, c => c.charCodeAt(0))));
-					const progress = current_file_message_ui.querySelector('progress');
-					//create download link when all data have arrived
-					if(message.end) {
-						const blob = new Blob(current_file_content, {type : current_file_message.filetype});
-						const url = URL.createObjectURL(blob);
-						//remove progress bar
-						progress.parentNode.removeChild(progress);
-						//update message text and add link download file
-						const message_ui_message = current_file_message_ui.querySelector('span.message');
-						message_ui_message.textContent = 'File ' + current_file_message.filename + ' transferred';
-						const message_download_file = document.createFullElement('a', {href : url, download : current_file_message.filename, style : 'margin-left: 5px;'}, 'Download');
-						message_ui_message.appendChild(message_download_file);
-						//do something with well known mime type
-						if(current_file_message.filetype.contains('image')) {
-							const message_image = document.createFullElement('img', {src : url, alt : current_file_message.filename, title : current_file_message.filename});
-							current_file_message_ui.appendChild(message_image);
-						}
-					}
-					else {
-						progress.setAttribute('value', (current_file_content.length - 1) * CHUNK_SIZE + current_file_content.last().length);
-					}
+				//keep a hook on file message ui
+				if(message.type === 'file') {
+					call.files[message.fileid] = {
+						name : message.filename,
+						type : message.filetype,
+						size : message.filesize,
+						parts : []
+					};
 				}
-				else {
-					const message_ui = draw_message(message);
-					//keep a hook on file message ui
-					if(message.type === 'file') {
-						current_file_message = message;
-						current_file_content = [];
-						current_file_message_ui = message_ui;
-					}
-					document.getElementById(call.id).querySelector('[data-binding="call-messages"]').appendChild(message_ui);
-					//document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'hidden';
-				}
+				const message_ui = draw_message(message);
+				document.getElementById(call.id).querySelector('[data-binding="call-messages"]').appendChild(message_ui);
+				//document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'hidden';
 			};
 			call.channel.onclose = function(event) {
 				console.log('on channel close', event);
