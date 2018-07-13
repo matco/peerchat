@@ -1,5 +1,8 @@
 'use strict';
 
+import {UUID} from './tools/uuid.js';
+import {UI} from './ui.js';
+
 const CHUNK_SIZE = 100 * 1000;
 
 let server;
