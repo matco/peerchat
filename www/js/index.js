@@ -69,7 +69,7 @@ window.addEventListener(
 					time : new Date().toString()
 				};
 				this.call.channel.send(JSON.stringify(message));
-				var message_ui = draw_message(message);
+				const message_ui = draw_message(message);
 				this.querySelector('[data-binding="call-messages"]').appendChild(message_ui);
 				send_file(
 					file_channel,
@@ -122,7 +122,7 @@ window.addEventListener(
 			reader.readAsArrayBuffer(chunk);
 		}
 
-		function draw_message(message, callback) {
+		function draw_message(message) {
 			const message_ui = document.createFullElement('li');
 			const time = new Date(message.time);
 			const message_date_text = time.getHours().pad(2) + ':' + time.getMinutes().pad(2) + ':' + time.getSeconds().pad(2);
@@ -235,7 +235,7 @@ window.addEventListener(
 					if(signal.type === 'call') {
 						//call can be an incoming call or information about an occurring call
 						if(signal.hasOwnProperty('action')) {
-							var call = calls.find(c => c.id === signal.call.id);
+							const call = calls.find(c => c.id === signal.call.id);
 							//if call is not found, there is nothing to do, user has declined the call
 							//only caller needs to set remote description here
 							if(call && call.caller === user.id) {
@@ -246,7 +246,7 @@ window.addEventListener(
 							}
 						}
 						else if(signal.hasOwnProperty('sdp')) {
-							var call = calls.find(c => c.id === signal.call.id);
+							const call = calls.find(c => c.id === signal.call.id);
 							//only caller needs to set remove description here
 							if(call) {
 								if(call.caller === user.id) {
@@ -265,7 +265,7 @@ window.addEventListener(
 							}
 							else {
 								//console.log(exception);
-								var call = signal.call;
+								const call = signal.call;
 								call.is_caller = false;
 								call.sdp = signal.sdp;
 								//add call to call list
@@ -281,7 +281,7 @@ window.addEventListener(
 						else if(signal.hasOwnProperty('candidate')) {
 							const candidate = new RTCIceCandidate(signal.candidate);
 							//find associated call
-							var call = calls.find(c => c.id === signal.call.id);
+							const call = calls.find(c => c.id === signal.call.id);
 							//call may have already been answered
 							if(call.peer) {
 								call.peer.addIceCandidate(candidate);
@@ -510,7 +510,7 @@ window.addEventListener(
 			};
 			channel.onmessage = function(event) {
 				//retrieve reference to file in call
-				const file = call.files[channel.label]
+				const file = call.files[channel.label];
 				//concatenate chunks together
 				file.parts.push(new Blob([event.data]));
 				const current_size = file.parts.map(p => p.size).reduce((accumulator, value) => accumulator + value);
