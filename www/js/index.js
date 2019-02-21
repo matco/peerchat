@@ -112,7 +112,6 @@ window.addEventListener(
 				}
 				//call final callback
 				else {
-					channel.close();
 					if(final_callback) {
 						final_callback.call(null, file);
 					}
@@ -504,8 +503,9 @@ window.addEventListener(
 				//retrieve ui
 				const file_ui = document.getElementById(channel.label);
 				const progress = file_ui.querySelector('progress');
-				//create download link when all data have arrived
+				//create download link when the whole file has been transferred
 				if(current_size === file.size) {
+					channel.close();
 					const blob = new Blob(file.parts, {type : file.type});
 					const url = URL.createObjectURL(blob);
 					//remove progress bar
