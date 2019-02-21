@@ -235,10 +235,9 @@ window.addEventListener(
 					if(signal.type === 'call') {
 						//call can be an incoming call or information about an occurring call
 						if(signal.hasOwnProperty('action')) {
-							const call = calls.find(c => c.id === signal.call.id);
-							//if call is not found, there is nothing to do, user has declined the call
-							//only caller needs to set remote description here
-							if(call && call.caller === user.id) {
+							if(signal.action === 'decline') {
+								const call = calls.find(c => c.id === signal.call.id);
+								calls.removeElement(call);
 								//disable ui
 								document.getElementById(call.id).parentNode.removeChild(document.getElementById(call.id));
 								//show message
@@ -389,6 +388,7 @@ window.addEventListener(
 				const incoming_call = document.getElementById('incoming_call');
 				incoming_call.style.display = 'none';
 				const call = incoming_call.call;
+				calls.removeElement(call);
 				socket.sendObject({type : 'call', action : 'decline', recipient : call.caller, call : sanitize_call(call)});
 			}
 		);
