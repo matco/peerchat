@@ -41,9 +41,9 @@ websocket_server.on('connection', function(connection) {
 	};
 	peers.push(peer);
 
-	connection.on('message', function(message, flags) {
+	connection.on('message', function(message) {
 		//process only text message
-		if(!flags.binary) {
+		if(typeof message === 'string') {
 			console.log(new Date().toISOString() + ' Message received ' + message);
 			const content = JSON.parse(message);
 			switch(content.type) {
