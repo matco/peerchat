@@ -446,9 +446,6 @@ window.addEventListener(
 					}
 				}
 			};
-			peer.onopen = function(event) {
-				console.log('on peer open', event);
-			};
 			peer.ondatachannel = function(event) {
 				console.log('on peer channel', event);
 				if(event.channel.label === 'chat') {
@@ -458,16 +455,6 @@ window.addEventListener(
 				else {
 					manage_file_channel(call, event.channel);
 				}
-			};
-			peer.onconnection = function(event) {
-				console.log('on peer connection', event);
-			};
-			peer.onclosedconnection = function() {
-				//disable ui
-				document.getElementById(call.id).querySelectorAll('input,button').forEach(e => e.setAttribute('disabled', 'disabled'));
-				//show error
-				const penpal_id = user.id === call.caller ? call.recipient : call.caller;
-				UI.ShowError(get_username(penpal_id) + ' ends the chat', 5000);
 			};
 			peer.ontrack = function() {
 				console.log('on peer add track');
@@ -565,7 +552,11 @@ window.addEventListener(
 			};
 			call.channel.onclose = function(event) {
 				console.log('on channel close', event);
-				//document.getElementById(call.id).style.display = 'none';
+				//disable ui
+				document.getElementById(call.id).querySelectorAll('input,button').forEach(e => e.setAttribute('disabled', 'disabled'));
+				//show error
+				const penpal_id = user.id === call.caller ? call.recipient : call.caller;
+				UI.ShowError(get_username(penpal_id) + ' ends the chat', 5000);
 			};
 		}
 	}
