@@ -26,6 +26,16 @@
 			</div>
 		</template>
 
+		<template id="incoming_call">
+			<div class="popup incoming_call">
+				<p>
+					<span data-binding="incoming-call-username" style="margin-right: 5px;"></span>wants to chat with you
+				</p>
+				<button data-action="answer">Answer</button>
+				<button data-action="decline">Decline</button>
+			</div>
+		</template>
+
 		<form id="connect" class="popup">
 			<div>
 				<p>
@@ -51,14 +61,6 @@
 		</form>
 
 		<p id="error"></p>
-
-		<div id="incoming_call" class="popup">
-			<p>
-				<span id="incoming_call_user" style="margin-right: 5px;"></span>wants to chat with you
-			</p>
-			<button id="incoming_call_answer">Answer</button>
-			<button id="incoming_call_decline">Decline</button>
-		</div>
 
 		<header style="display: none;">
 			<h1>Connected on <strong id="server"></strong> as <strong id="username"></strong></h1>

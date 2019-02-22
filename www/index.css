@@ -115,8 +115,7 @@ input:invalid {
 	padding-top: 0.2rem;
 }
 
-#incoming_call {
-	display: none;
+.incoming_call {
 	left: calc(50% - 10rem);
 	width: 20rem;
 	background-color: #dff0d8;

@@ -276,10 +276,39 @@ window.addEventListener(
 									//add call to call list
 									calls.push(signal.call);
 									//find username
-									const username = get_username(signal.call.caller);
-									document.getElementById('incoming_call_user').textContent = username;
-									document.getElementById('incoming_call').call = call;
-									document.getElementById('incoming_call').style.display = 'block';
+									const incoming_call_ui = document.importNode(document.getElementById('incoming_call').content.firstElementChild, true);
+									incoming_call_ui.querySelector('[data-binding="incoming-call-username"]').textContent = get_username(signal.call.caller);
+									incoming_call_ui.querySelector('button[data-action="decline"]').addEventListener(
+										'click',
+										function() {
+											incoming_call_ui.remove();
+											calls.removeElement(call);
+											socket.sendObject({type : 'call', action : 'decline', recipient : call.caller, call : sanitize_call(call)});
+										}
+									);
+									incoming_call_ui.querySelector('button[data-action="answer"]').addEventListener(
+										'click',
+										function() {
+											incoming_call_ui.remove();
+											//create peer
+											add_peer(call);
+											//setRemoteDescription (RTCSessionDescription description, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
+											call.peer.setRemoteDescription(
+												new RTCSessionDescription(call.sdp),
+												function() {
+													add_media(call);
+												},
+												function(error) {
+													console.log(error);
+												}
+											);
+											//add ice candidate if it has already been received
+											if(call.candidate) {
+												call.peer.addIceCandidate(call.candidate);
+											}
+										}
+									);
+									document.body.appendChild(incoming_call_ui);
 								}
 							}
 							//ice candidate
@@ -394,42 +423,6 @@ window.addEventListener(
 			function() {
 				//close connection to signaling server
 				socket.close();
-			}
-		);
-
-		document.getElementById('incoming_call_decline').addEventListener(
-			'click',
-			function() {
-				const incoming_call = document.getElementById('incoming_call');
-				incoming_call.style.display = 'none';
-				const call = incoming_call.call;
-				calls.removeElement(call);
-				socket.sendObject({type : 'call', action : 'decline', recipient : call.caller, call : sanitize_call(call)});
-			}
-		);
-
-		document.getElementById('incoming_call_answer').addEventListener(
-			'click',
-			function() {
-				const incoming_call = document.getElementById('incoming_call');
-				incoming_call.style.display = 'none';
-				const call = incoming_call.call;
-				//create peer
-				add_peer(call);
-				//setRemoteDescription (RTCSessionDescription description, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
-				call.peer.setRemoteDescription(
-					new RTCSessionDescription(call.sdp),
-					function() {
-						add_media(call);
-					},
-					function(error) {
-						console.log(error);
-					}
-				);
-				//add ice candidate if it has already been received
-				if(call.candidate) {
-					call.peer.addIceCandidate(call.candidate);
-				}
 			}
 		);
 
