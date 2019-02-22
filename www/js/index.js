@@ -295,7 +295,7 @@ window.addEventListener(
 						//all current users
 						if(signal.hasOwnProperty('users')) {
 							users.pushAll(signal.users);
-							signal.users.map(create_user).forEach(Node.prototype.appendChild, document.getElementById('users'));
+							signal.users.map(create_user).forEach(Node.prototype.appendChild, document.getElementById('users').clear());
 						}
 						else if(signal.hasOwnProperty('user')) {
 							const users_ui = document.getElementById('users');
@@ -342,6 +342,30 @@ window.addEventListener(
 				}
 			);
 
+			socket.addEventListener(
+				'close',
+				function() {
+					//ends all calls and remove associated ui
+					calls.slice().forEach(function(call) {
+						//peer may not have been created yet if call is happening right now
+						if(call.peer) {
+							call.peer.close();
+						}
+						//same for channel
+						if(call.channel) {
+							call.channel.close();
+						}
+						document.querySelector(`div[data-call-id="${call.id}"]`).remove();
+					});
+					calls.length = 0;
+					users.length = 0;
+					//update ui
+					document.getElementById('contacts').style.display = 'none';
+					document.querySelector('header').style.display = 'none';
+					document.getElementById('connect').style.display = 'block';
+				}
+			);
+
 			socket.sendObject = function(message) {
 				this.send(JSON.stringify(message));
 			};
@@ -360,24 +384,8 @@ window.addEventListener(
 		document.getElementById('disconnect').addEventListener(
 			'click',
 			function() {
-				//ends all calls and remove associated ui
-				calls.forEach(function(call) {
-					//peer may not have been created yet if call is happening right now
-					if(call.peer) {
-						call.peer.close();
-					}
-					//same for channel
-					if(call.channel) {
-						call.channel.close();
-					}
-					document.querySelector(`div[data-call-id="${call.id}"]`).remove();
-				});
 				//close connection to signaling server
 				socket.close();
-				//update ui
-				document.getElementById('contacts').style.display = 'none';
-				document.querySelector('header').style.display = 'none';
-				document.getElementById('connect').style.display = 'block';
 			}
 		);
 
