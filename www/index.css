@@ -1,11 +1,15 @@
+:root {
+	--main-border-color: #aaa;
+}
+
 html {
 	height: 100%;
 }
 body {
-	font-family: Verdana;
-	font-size: 12px;
+	font-family: 'Open Sans';
+	font-size: 80%; /*let users choose their own font size, but decrease this size a little bit as most browsers have default font size set to 16px*/
 	margin: 0;
-	padding: 50px 10px 10px 10px;
+	padding: 3.5rem 1rem 1rem 1rem;
 	width: 100%;
 	height: 100%;
 	box-sizing: border-box;
@@ -15,35 +19,42 @@ header {
 	top: 0;
 	left: 0;
 	width: 100%;
-	padding: 5px;
 	margin: 0;
 	background-color: #eee;
-	border-bottom: 2px solid #aaa;
-	line-height: 24px;
+	border-bottom: 2px solid var(--main-border-color);
 }
 header > button {
-	float: right;
-	margin-right: 10px;
+	position: absolute;
+	top: 0.6rem;
+	right: 0.6rem;
+}
+h1 {
+	font-size: 1rem;
+	font-weight: normal;
+	margin: 0;
+	padding: 0.5rem;
 }
 h2 {
+	font-size: 0.9rem;
+	font-weight: normal;
 	margin: 0;
-	padding: 5px;
-	border-bottom: 2px solid #aaa;
+	padding: 0.2rem;
+	border-bottom: 2px solid var(--main-border-color);
 }
 h2 > img {
-	vertical-align: bottom;
+	vertical-align: sub;
 }
 p {
 	margin: 0;
-	padding: 5px;
+	padding: 0.4rem;
 }
 ul {
 	list-style-type: none;
 	margin: 0;
-	padding: 2px;
+	padding: 0.2rem;
 }
 button {
-	border: 2px solid #aaa;
+	border: 2px solid var(--main-border-color);
 	border-radius: 2px;
 }
 button:not([disabled]) {
@@ -57,85 +68,92 @@ input {
 	border-radius: 2px;
 }
 input:focus {
-	border: 2px solid #aaa;
+	border: 2px solid var(--main-border-color);
 	box-shadow: none;
 }
 input:invalid {
-	border: 2px solid #D43F3A;
+	border: 2px solid #d43f3a;
 	box-shadow: none;
 }
 
-#connect {
+/* popups */
+.popup {
 	position: fixed;
 	top: 20%;
-	left: calc(50% - 210px);
-	width: 420px;
-	height: 150px;
-	background-color: #eee;
-	border: 5px solid #aaa;
+	border: 5px solid var(--main-border-color);
 	border-radius: 5px;
+	box-sizing: border-box;
+	padding: 1rem;
+	z-index: 2;
+}
+
+#connect {
+	left: calc(50% - 15rem);
+	width: 30rem;
+	height: 10rem;
+	background-color: #eee;
+	border-color: var(--main-border-color);
 }
 #connect > div {
 	position: absolute;
-	padding: 20px;
+	padding: 1rem;
+	box-sizing: border-box;
 }
 #connect > menu {
 	width: 100%;
 	position: absolute;
+	left: 0;
 	bottom: 0;
 	text-align: right;
 	margin: 0;
-	padding: 10px;
+	padding: 1rem;
 	box-sizing: border-box;
 }
 #connect label span {
 	float: left;
-	width: 90px;
-	padding-top: 4px;
+	width: 6rem;
+	padding-top: 0.2rem;
 }
 
+#incoming_call {
+	display: none;
+	left: calc(50% - 10rem);
+	width: 20rem;
+	background-color: #dff0d8;
+	border-color: #468847;
+	color: #468847;
+	text-align: center;
+}
+
+/* error */
 #error {
 	position: fixed;
 	top: 0;
 	left: 0;
 	width: 100%;
-	padding: 10px;
+	height: 3rem;
+	padding: 1rem;
 	box-sizing: border-box;
 	z-index: 2;
-	background-color: #F2DEDE;
-	border-bottom: 1px solid #EED3D7;
-	color: #B94A48;
+	background-color: #f2dede;
+	border-bottom: 2px solid #b94a48;
+	color: #b94a48;
 }
 #error:empty {
 	display: none;
 }
-#incoming_call {
-	position: fixed;
-	display: none;
-	top: 40%;
-	left: calc(50% - 125px);
-	width: 250px;
-	padding: 10px;
-	box-sizing: border-box;
-	z-index: 2;
-	background-color: #DFF0D8;
-	border: 5px solid #468847;
-	border-radius: 5px;
-	color: #468847;
-	text-align: center;
-}
 
 .column {
+	position: relative;
 	float: left;
 	display: flex;
 	flex-direction: column;
 	flex-wrap: nowrap;
 	box-sizing: border-box;
-	width: 300px;
+	width: 20rem;
 	height: 100%;
-	margin-right: 10px;
-	border: 2px solid #aaa;
-	position: relative;
+	margin-right: 1rem;
+	border: 2px solid var(--main-border-color);
 	border-radius: 2px;
 }
 .column_header {
@@ -143,10 +161,9 @@ input:invalid {
 	box-sizing: border-box;
 	width: 100%;
 	background-color: #ddd;
-	font-size: 13px;
 }
 .column_header img {
-	margin-right: 5px;
+	margin-right: 1rem;
 }
 .column_content {
 	flex-grow: 2;
@@ -156,43 +173,41 @@ input:invalid {
 	align-self: flex-end;
 	box-sizing: border-box;
 	width: 100%;
-	padding: 4px;
+	padding: 0.2rem;
 	background-color: #ddd;
-	border-top: 2px solid #aaa;
+	border-top: 2px solid var(--main-border-color);
 }
 .column_footer input {
-	width: 225px;
+	width: 15rem;
 }
 /* contact column */
 #users {
 	margin: 0;
 	padding: 0;
-	list-style-type: none;
 }
 #users > li {
 	cursor: pointer;
-	padding: 3px;
+	padding: 0.4rem;
 }
 #users > li:hover {
 	background-color: #ddd;
 }
 #connect > input {
-	width: 100px;
+	width: 10rem;
 }
 /* calls columns */
 .messages > li > time {
-	font-size: 8px;
-	color: #bbb;
+	font-size: 0.6rem;
+	color: #ccc;
 }
 .messages > li > span.user {
-	font-size: 8px;
-	color: #888;
-	margin-left: 5px;
+	font-size: 0.6rem;
+	color: #aaa;
+	margin-left: 0.5rem;
 }
 .messages > li > span.message {
-	font-size: 10px;
 	color: #333;
-	margin-left: 5px;
+	margin-left: 0.5rem;
 }
 .messages > li > span.message img {
 	max-width: 80%;

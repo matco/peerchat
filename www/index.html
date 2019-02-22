@@ -3,6 +3,7 @@
 	<head>
 		<meta charset="UTF-8" />
 		<title>Peerchat</title>
+		<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" rel="stylesheet" />
 		<link href="index.css" rel="stylesheet" type="text/css" title="default" />
 		<script type="text/javascript" src="js/tools/extension.js"></script>
 		<script type="text/javascript" src="js/tools/dom_extension.js"></script>
@@ -25,7 +26,7 @@
 			</div>
 		</template>
 
-		<form id="connect">
+		<form id="connect" class="popup">
 			<div>
 				<p>
 					<label>
@@ -51,7 +52,7 @@
 
 		<p id="error"></p>
 
-		<div id="incoming_call">
+		<div id="incoming_call" class="popup">
 			<p>
 				<span id="incoming_call_user" style="margin-right: 5px;"></span>wants to chat with you
 			</p>
@@ -60,7 +61,7 @@
 		</div>
 
 		<header style="display: none;">
-			Connected on <strong id="server"></strong> as <strong id="username"></strong>
+			<h1>Connected on <strong id="server"></strong> as <strong id="username"></strong></h1>
 			<button id="disconnect" type="button">Disconnect</button>
 		</header>
 
