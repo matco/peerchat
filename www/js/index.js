@@ -57,8 +57,9 @@ window.addEventListener(
 				const file = event.dataTransfer.files[i];
 				//create new channel for file transfer
 				const fileid = UUID.Generate();
-				const file_channel = this.call.peer.createDataChannel(fileid);
-				this.call.files.push({channel : file_channel});
+				const call = calls.find(c => c.id === this.dataset.callId);
+				const file_channel = call.peer.createDataChannel(fileid);
+				call.files.push({channel : file_channel});
 				const message = {
 					emitter : user.id,
 					type : 'file',
@@ -68,7 +69,7 @@ window.addEventListener(
 					filesize : file.size,
 					time : new Date().toString()
 				};
-				this.call.channel.send(JSON.stringify(message));
+				call.channel.send(JSON.stringify(message));
 				const message_ui = draw_message(message);
 				this.querySelector('[data-binding="call-messages"]').appendChild(message_ui);
 				send_file(
@@ -151,9 +152,8 @@ window.addEventListener(
 		}
 
 		function create_call_ui(call) {
-			const call_ui = document.getElementById('call').cloneNode(true);
-			call_ui.call = call;
-			call_ui.id = call.id;
+			const call_ui = document.importNode(document.getElementById('call').content.firstElementChild, true);
+			call_ui.dataset.callId = call.id;
 			//find penpal
 			const penpal_id = user.id === call.caller ? call.recipient : call.caller;
 			call_ui.querySelector('[data-binding="call-username"]').textContent = get_username(penpal_id);
@@ -238,7 +238,7 @@ window.addEventListener(
 								const call = calls.find(c => c.id === signal.call.id);
 								calls.removeElement(call);
 								//disable ui
-								document.getElementById(call.id).parentNode.removeChild(document.getElementById(call.id));
+								document.querySelector(`div[data-call-id="${call.id}"]`).remove();
 								//show message
 								UI.ShowError(get_username(call.recipient) + ' declines your call', 3000);
 							}
@@ -258,7 +258,7 @@ window.addEventListener(
 										}
 									);
 									//activate ui
-									document.getElementById(call.id).querySelectorAll('input,button').forEach(e => e.removeAttribute('disabled'));
+									document.querySelector(`div[data-call-id="${call.id}"]`).querySelectorAll('input,button').forEach(e => e.removeAttribute('disabled'));
 								}
 							}
 							else {
@@ -370,7 +370,7 @@ window.addEventListener(
 					if(call.channel) {
 						call.channel.close();
 					}
-					document.body.removeChild(document.getElementById(call.id));
+					document.querySelector(`div[data-call-id="${call.id}"]`).remove();
 				});
 				//close connection to signaling server
 				socket.close();
@@ -486,7 +486,7 @@ window.addEventListener(
 				call.peer.createAnswer(peer_got_description, peer_didnt_get_description);
 				//create and activate ui
 				create_call_ui(call);
-				document.getElementById(call.id).querySelectorAll('input,button').forEach(e => e.removeAttribute('disabled'));
+				document.querySelector(`div[data-call-id="${call.id}"]`).querySelectorAll('input,button').forEach(e => e.removeAttribute('disabled'));
 			}
 		}
 
@@ -533,7 +533,7 @@ window.addEventListener(
 		function manage_channel(call) {
 			call.channel.onopen = function(event) {
 				console.log('on channel open', event);
-				document.getElementById(call.id).style.display = 'block';
+				document.querySelector(`div[data-call-id="${call.id}"]`).style.display = 'block';
 			};
 			call.channel.onmessage = function(event) {
 				const message = JSON.parse(event.data);
@@ -547,13 +547,13 @@ window.addEventListener(
 					};
 				}
 				const message_ui = draw_message(message);
-				document.getElementById(call.id).querySelector('[data-binding="call-messages"]').appendChild(message_ui);
+				document.querySelector(`div[data-call-id="${call.id}"]`).querySelector('[data-binding="call-messages"]').appendChild(message_ui);
 				//document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'hidden';
 			};
 			call.channel.onclose = function(event) {
 				console.log('on channel close', event);
 				//disable ui
-				document.getElementById(call.id).querySelectorAll('input,button').forEach(e => e.setAttribute('disabled', 'disabled'));
+				document.querySelector(`div[data-call-id="${call.id}"]`).querySelectorAll('input,button').forEach(e => e.setAttribute('disabled', 'disabled'));
 				//show error
 				const penpal_id = user.id === call.caller ? call.recipient : call.caller;
 				UI.ShowError(get_username(penpal_id) + ' ends the chat', 5000);
