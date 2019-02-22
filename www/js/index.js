@@ -84,7 +84,7 @@ window.addEventListener(
 						const progress = message_ui.querySelector('progress');
 						progress.parentNode.removeChild(progress);
 						//update message text
-						message_ui.querySelector('span.message').textContent = 'File ' + file.name + ' sent';
+						message_ui.querySelector('span.message').textContent = `File ${file.name} sent`;
 					}
 				);
 			}
@@ -97,27 +97,33 @@ window.addEventListener(
 			const end = offset > file.size;
 
 			const reader = new FileReader();
-			reader.onerror = function() {
-				UI.ShowError('Error while loading ' + file.name, 5000);
-			};
-			reader.onloadend = function(event) {
-				//console.log(reader.result);
-				channel.send(event.target.result);
-				//continue with next chunk and call progression callback
-				if(!end) {
-					if(progression_callback) {
-						progression_callback.call(null, offset);
-					}
-					//TODO improve this to avoid always passing callback parameters
-					send_file(channel, file, offset, progression_callback, final_callback);
+			reader.addEventListener(
+				'error',
+				function() {
+					UI.ShowError('Error while loading ' + file.name, 5000);
 				}
-				//call final callback
-				else {
-					if(final_callback) {
-						final_callback.call(null, file);
+			);
+			reader.addEventListener(
+				'loadend',
+				function(event) {
+					//console.log(reader.result);
+					channel.send(event.target.result);
+					//continue with next chunk and call progression callback
+					if(!end) {
+						if(progression_callback) {
+							progression_callback.call(null, offset);
+						}
+						//TODO improve this to avoid always passing callback parameters
+						send_file(channel, file, offset, progression_callback, final_callback);
+					}
+					//call final callback
+					else {
+						if(final_callback) {
+							final_callback.call(null, file);
+						}
 					}
 				}
-			};
+			);
 
 			reader.readAsArrayBuffer(chunk);
 		}
@@ -194,12 +200,13 @@ window.addEventListener(
 
 		function user_call() {
 			//check if there is not already an existing call with this user
-			const existing_call = calls.some(c => c.caller === this.user.id || c.recipient === this.user.id);
+			const user = users.find(u => u.id === this.dataset.userId);
+			const existing_call = calls.some(c => c.caller === user.id || c.recipient === user.id);
 			if(existing_call) {
-				UI.ShowError('You\'re already chatting with ' + this.user.name, 3000);
+				UI.ShowError(`You're already chatting with ${user.name}`, 3000);
 			}
 			else {
-				const call = place_call(this.user.id);
+				const call = place_call(user.id);
 				create_call_ui(call);
 			}
 		}
@@ -216,8 +223,7 @@ window.addEventListener(
 		}
 
 		function create_user(user) {
-			const li = document.createFullElement('li', {}, user.name);
-			li.user = user;
+			const li = document.createFullElement('li', {'data-user-id' : user.id}, user.name);
 			li.addEventListener('click', user_call);
 			return li;
 		}
@@ -230,93 +236,95 @@ window.addEventListener(
 				function(event) {
 					const signal = JSON.parse(event.data);
 					console.log('signalisation message received', signal);
-					//call related messages
-					if(signal.type === 'call') {
-						//call can be an incoming call or information about an occurring call
-						if(signal.hasOwnProperty('action')) {
-							if(signal.action === 'decline') {
-								const call = calls.find(c => c.id === signal.call.id);
-								calls.removeElement(call);
-								//disable ui
-								document.querySelector(`div[data-call-id="${call.id}"]`).remove();
-								//show message
-								UI.ShowError(get_username(call.recipient) + ' declines your call', 3000);
-							}
-						}
-						else if(signal.hasOwnProperty('sdp')) {
-							const call = calls.find(c => c.id === signal.call.id);
-							//only caller needs to set remove description here
-							if(call) {
-								if(call.caller === user.id) {
-									call.peer.setRemoteDescription(
-										new RTCSessionDescription(signal.sdp),
-										function() {
-											//nothing to do in this case
-										},
-										function(error) {
-											console.log(error);
-										}
-									);
-									//activate ui
-									document.querySelector(`div[data-call-id="${call.id}"]`).querySelectorAll('input,button').forEach(e => e.removeAttribute('disabled'));
+					switch(signal.type) {
+						//call related messages
+						case 'call': {
+							//call can be an incoming call or information about an occurring call
+							if(signal.hasOwnProperty('action')) {
+								if(signal.action === 'decline') {
+									const call = calls.find(c => c.id === signal.call.id);
+									calls.removeElement(call);
+									//disable ui
+									document.querySelector(`div[data-call-id="${call.id}"]`).remove();
+									//show message
+									UI.ShowError(get_username(call.recipient) + ' declines your call', 3000);
 								}
 							}
-							else {
-								//console.log(exception);
-								const call = signal.call;
-								call.is_caller = false;
-								call.sdp = signal.sdp;
-								//add call to call list
-								calls.push(signal.call);
-								//find username
-								const username = get_username(signal.call.caller);
-								document.getElementById('incoming_call_user').textContent = username;
-								document.getElementById('incoming_call').call = call;
-								document.getElementById('incoming_call').style.display = 'block';
+							else if(signal.hasOwnProperty('sdp')) {
+								const call = calls.find(c => c.id === signal.call.id);
+								//only caller needs to set remove description here
+								if(call) {
+									if(call.caller === user.id) {
+										call.peer.setRemoteDescription(
+											new RTCSessionDescription(signal.sdp),
+											function() {
+												//nothing to do in this case
+											},
+											function(error) {
+												console.log(error);
+											}
+										);
+										//activate ui
+										document.querySelector(`div[data-call-id="${call.id}"]`).querySelectorAll('input,button').forEach(e => e.removeAttribute('disabled'));
+									}
+								}
+								else {
+									//console.log(exception);
+									const call = signal.call;
+									call.is_caller = false;
+									call.sdp = signal.sdp;
+									//add call to call list
+									calls.push(signal.call);
+									//find username
+									const username = get_username(signal.call.caller);
+									document.getElementById('incoming_call_user').textContent = username;
+									document.getElementById('incoming_call').call = call;
+									document.getElementById('incoming_call').style.display = 'block';
+								}
 							}
+							//ice candidate
+							else if(signal.hasOwnProperty('candidate')) {
+								const candidate = new RTCIceCandidate(signal.candidate);
+								//find associated call
+								const call = calls.find(c => c.id === signal.call.id);
+								//call may have already been answered
+								if(call.peer) {
+									call.peer.addIceCandidate(candidate);
+								}
+								//if call has not been answered, candidate is stored temporarily in the call
+								else {
+									call.candidate = candidate;
+								}
+							}
+							break;
 						}
-						//ice candidate
-						else if(signal.hasOwnProperty('candidate')) {
-							const candidate = new RTCIceCandidate(signal.candidate);
-							//find associated call
-							const call = calls.find(c => c.id === signal.call.id);
-							//call may have already been answered
-							if(call.peer) {
-								call.peer.addIceCandidate(candidate);
+						//connection related messages
+						case 'connection': {
+							//all current users
+							if(signal.hasOwnProperty('users')) {
+								users.pushAll(signal.users);
+								signal.users.map(create_user).forEach(Node.prototype.appendChild, document.getElementById('users').clear());
 							}
-							//if call has not been answered, candidate is stored temporarily in the call
-							else {
-								call.candidate = candidate;
+							else if(signal.hasOwnProperty('user')) {
+								const users_ui = document.getElementById('users');
+								//arriving user
+								if(signal.action === 'login') {
+									users.push(signal.user);
+									users_ui.appendChild(create_user(signal.user));
+									UI.Notify(`${signal.user.name} logged in`);
+								}
+								//leaving user
+								else {
+									users.removeElement(signal.user);
+									users_ui.querySelector(`[data-user-id="${signal.user.id}"]`).remove();
+									UI.Notify(`${signal.user.name} left`);
+								}
 							}
+							break;
 						}
-					}
-					//connection related messages
-					else if(signal.type === 'connection') {
-						//all current users
-						if(signal.hasOwnProperty('users')) {
-							users.pushAll(signal.users);
-							signal.users.map(create_user).forEach(Node.prototype.appendChild, document.getElementById('users').clear());
-						}
-						else if(signal.hasOwnProperty('user')) {
-							const users_ui = document.getElementById('users');
-							//arriving user
-							if(signal.action === 'login') {
-								users.push(signal.user);
-								users_ui.appendChild(create_user(signal.user));
-								UI.Notify(signal.user.name + ' logged in');
-							}
-							//leaving user
-							else {
-								users.removeElement(signal.user);
-								const child = users_ui.children.find(c => c.user.id === signal.user.id);
-								users_ui.removeChild(child);
-								UI.Notify(signal.user.name + ' left');
-							}
-						}
-					}
-					//unknown messages
-					else {
-						console.error('Unknown type of message');
+						//unknown messages
+						default:
+							console.error('Unknown type of message');
 					}
 				}
 			);
@@ -520,7 +528,7 @@ window.addEventListener(
 					progress.parentNode.removeChild(progress);
 					//update message text and add link download file
 					const message_ui_message = file_ui.querySelector('span.message');
-					message_ui_message.textContent = 'File ' + file.name + ' transferred';
+					message_ui_message.textContent = `File ${file.name} transferred`;
 					const message_download_file = document.createFullElement('a', {href : url, download : file.name, style : 'margin-left: 5px;'}, 'Download');
 					message_ui_message.appendChild(message_download_file);
 					//do something with well known mime type
