@@ -1,1 +1,8 @@
-runtime: nodejs8
+runtime: nodejs10
+env: flex
+
+manual_scaling:
+  instances: 1
+
+network:
+  session_affinity: true
