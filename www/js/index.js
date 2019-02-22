@@ -189,7 +189,7 @@ window.addEventListener(
 			call_ui.addEventListener('drop', drop);
 			//display call ui
 			document.body.appendChild(call_ui);
-			call_ui.style.display = 'block';
+			call_ui.style.opacity = '0.7';
 		}
 
 		function user_call() {
@@ -518,7 +518,7 @@ window.addEventListener(
 					//do something with well known mime type
 					if(file.type.includes('image')) {
 						const message_image = document.createFullElement('img', {src : url, alt : file.name, title : file.name});
-						file_ui.appendChild(message_image);
+						message_ui_message.appendChild(message_image);
 					}
 				}
 				else {
@@ -533,7 +533,7 @@ window.addEventListener(
 		function manage_channel(call) {
 			call.channel.onopen = function(event) {
 				console.log('on channel open', event);
-				document.querySelector(`div[data-call-id="${call.id}"]`).style.display = 'block';
+				document.querySelector(`div[data-call-id="${call.id}"]`).style.opacity = '1';
 			};
 			call.channel.onmessage = function(event) {
 				const message = JSON.parse(event.data);
