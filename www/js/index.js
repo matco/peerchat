@@ -247,7 +247,7 @@ window.addEventListener(
 									//disable ui
 									document.querySelector(`div[data-call-id="${call.id}"]`).remove();
 									//show message
-									UI.ShowError(get_username(call.recipient) + ' declines your call', 3000);
+									UI.ShowError(get_username(call.recipient) + ' declined your call', 3000);
 								}
 							}
 							else if(signal.hasOwnProperty('sdp')) {
@@ -565,7 +565,7 @@ window.addEventListener(
 				document.querySelector(`div[data-call-id="${call.id}"]`).querySelectorAll('input,button').forEach(e => e.setAttribute('disabled', 'disabled'));
 				//show error
 				const penpal_id = user.id === call.caller ? call.recipient : call.caller;
-				UI.ShowError(get_username(penpal_id) + ' ends the chat', 5000);
+				UI.ShowError(get_username(penpal_id) + ' ended the call', 5000);
 			};
 		}
 	}
