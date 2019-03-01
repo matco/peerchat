@@ -183,10 +183,16 @@ window.addEventListener(
 			call_ui.querySelector('[data-binding="call-end"]').addEventListener(
 				'click',
 				function() {
+					//call may not have been accepted by the recipient yet
+					if(call.peer.connectionState !== 'connected') {
+						//in this case, a message must be send through signalisation server to warn the recipient that the call is no longer valid
+						socket.sendObject({type : 'call', action : 'cancel', recipient : call.recipient, call : sanitize_call(call)});
+					}
+					//in any case, close what must be closed and delete the call
+					document.querySelector(`div[data-call-id="${call.id}"]`).remove();
 					call.channel.close();
 					call.peer.close();
 					calls.removeElement(call);
-					document.body.removeChild(call_ui);
 				}
 			);
 			//manage file drop
@@ -249,6 +255,15 @@ window.addEventListener(
 									//show message
 									UI.ShowError(get_username(call.recipient) + ' declined your call', 3000);
 								}
+								if(signal.action === 'cancel') {
+									const call = calls.find(c => c.id === signal.call.id);
+									//call may have already been terminated when data channel has been closed
+									if(call) {
+										calls.removeElement(call);
+										//remove ui
+										document.querySelector(`div[data-call-id="${call.id}"]`).remove();
+									}
+								}
 							}
 							else if(signal.hasOwnProperty('sdp')) {
 								const call = calls.find(c => c.id === signal.call.id);
@@ -274,9 +289,10 @@ window.addEventListener(
 									call.is_caller = false;
 									call.sdp = signal.sdp;
 									//add call to call list
-									calls.push(signal.call);
+									calls.push(call);
 									//find username
 									const incoming_call_ui = document.importNode(document.getElementById('incoming_call').content.firstElementChild, true);
+									incoming_call_ui.dataset.callId = call.id;
 									incoming_call_ui.querySelector('[data-binding="incoming-call-username"]').textContent = get_username(signal.call.caller);
 									incoming_call_ui.querySelector('button[data-action="decline"]').addEventListener(
 										'click',
@@ -296,7 +312,7 @@ window.addEventListener(
 											call.peer.setRemoteDescription(
 												new RTCSessionDescription(call.sdp),
 												function() {
-													add_media(call);
+													add_data_channel(call);
 												},
 												function(error) {
 													console.log(error);
@@ -436,7 +452,7 @@ window.addEventListener(
 				files : []
 			};
 			add_peer(call);
-			add_media(call);
+			add_data_channel(call);
 			calls.push(call);
 			return call;
 		}
@@ -470,7 +486,7 @@ window.addEventListener(
 			call.peer = peer;
 		}
 
-		function add_media(call) {
+		function add_data_channel(call) {
 			function peer_got_description(description) {
 				console.log('on peer got description', description);
 				call.peer.setLocalDescription(description);
@@ -562,10 +578,14 @@ window.addEventListener(
 			call.channel.onclose = function(event) {
 				console.log('on channel close', event);
 				//disable ui
-				document.querySelector(`div[data-call-id="${call.id}"]`).querySelectorAll('input,button').forEach(e => e.setAttribute('disabled', 'disabled'));
-				//show error
-				const penpal_id = user.id === call.caller ? call.recipient : call.caller;
-				UI.ShowError(get_username(penpal_id) + ' ended the call', 5000);
+				const call_ui = document.querySelector(`div[data-call-id="${call.id}"]`);
+				//the call ui may have been removed if the call never happened
+				if(call_ui) {
+					call_ui.querySelectorAll('input,button').forEach(e => e.setAttribute('disabled', 'disabled'));
+					//show message
+					const penpal_id = user.id === call.caller ? call.recipient : call.caller;
+					UI.ShowError(`${get_username(penpal_id)} ended the call`, 5000);
+				}
 			};
 		}
 	}
