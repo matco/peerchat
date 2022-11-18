@@ -1,5 +1,3 @@
-'use strict';
-
 const notification_close_time = 5000;
 //remember if notification permission has been requested to avoid asking to the user more than once
 let notification_permission_requested = false;
@@ -7,7 +5,7 @@ let notification_permission_requested = false;
 let error_close_timeout;
 
 export const UI = {
-	Notify : function(message, options) {
+	Notify: function(message, options) {
 		//ask for permission if user has not explicitly denied nor granted notification (permission can be default or undefined)
 		if(window.Notification && !['granted', 'denied'].includes(Notification.permission) && !notification_permission_requested) {
 			notification_permission_requested = true;
@@ -26,7 +24,7 @@ export const UI = {
 			});
 		}
 	},
-	ShowError : function(error, error_close_time) {
+	ShowError: function(error, error_close_time) {
 		//clear previous if any
 		if(error_close_timeout) {
 			clearTimeout(error_close_timeout);

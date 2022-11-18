@@ -1,5 +1,3 @@
-'use strict';
-
 import {UUID} from './tools/uuid.js';
 import {UI} from './ui.js';
 
