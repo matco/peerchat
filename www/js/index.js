@@ -26,7 +26,7 @@ window.addEventListener(
 			user = sessionStorage.getObject('user');
 		}
 		else {
-			user = {id : UUID.Generate(), name : ''};
+			user = {id: UUID.Generate(), name: ''};
 		}
 		users.push(user);
 
@@ -57,15 +57,15 @@ window.addEventListener(
 				const fileid = UUID.Generate();
 				const call = calls.find(c => c.id === this.dataset.callId);
 				const file_channel = call.peer.createDataChannel(fileid);
-				call.files.push({channel : file_channel});
+				call.files.push({channel: file_channel});
 				const message = {
-					emitter : user.id,
-					type : 'file',
-					fileid : fileid,
-					filename : file.name,
-					filetype : file.type,
-					filesize : file.size,
-					time : new Date().toString()
+					emitter: user.id,
+					type: 'file',
+					fileid: fileid,
+					filename: file.name,
+					filetype: file.type,
+					filesize: file.size,
+					time: new Date().toString()
 				};
 				call.channel.send(JSON.stringify(message));
 				const message_ui = draw_message(message);
@@ -98,7 +98,7 @@ window.addEventListener(
 			reader.addEventListener(
 				'error',
 				function() {
-					UI.ShowError('Error while loading ' + file.name, 5000);
+					UI.ShowError(`Error while loading ${file.name}`, 5000);
 				}
 			);
 			reader.addEventListener(
@@ -129,28 +129,28 @@ window.addEventListener(
 		function draw_message(message) {
 			const message_ui = document.createFullElement('li');
 			const time = new Date(message.time);
-			const message_date_text = time.getHours().pad(2) + ':' + time.getMinutes().pad(2) + ':' + time.getSeconds().pad(2);
+			const message_date_text = `${time.getHours().pad(2)}:${time.getMinutes().pad(2)}:${time.getSeconds().pad(2)}`;
 			message_ui.appendChild(document.createFullElement('time', {}, message_date_text));
 			const is_emitter = message.emitter === user.id;
 			const user_name = is_emitter ? 'You' : get_username(message.emitter);
-			message_ui.appendChild(document.createFullElement('span', {'class' : 'user'}, user_name));
+			message_ui.appendChild(document.createFullElement('span', {'class': 'user'}, user_name));
 			//file message
 			if(message.type === 'file') {
 				//identify file ui
 				message_ui.setAttribute('id', message.fileid);
-				const message_content = document.createFullElement('span', {'class' : 'message'});
+				const message_content = document.createFullElement('span', {'class': 'message'});
 				if(is_emitter) {
-					message_content.appendChild(document.createTextNode('Sending file ' + message.filename));
+					message_content.appendChild(document.createTextNode(`Sending file ${message.filename}`));
 				}
 				else {
-					message_content.appendChild(document.createTextNode('Incoming file ' + message.filename));
+					message_content.appendChild(document.createTextNode(`Incoming file ${message.filename}`));
 				}
-				message_content.appendChild(document.createFullElement('progress', {value : 0, max : message.filesize}));
+				message_content.appendChild(document.createFullElement('progress', {value: 0, max: message.filesize}));
 				message_ui.appendChild(message_content);
 			}
 			//text message
 			else {
-				message_ui.appendChild(document.createFullElement('span', {'class' : 'message'}, message.data));
+				message_ui.appendChild(document.createFullElement('span', {'class': 'message'}, message.data));
 			}
 			return message_ui;
 		}
@@ -167,10 +167,10 @@ window.addEventListener(
 					Event.stop(event);
 					//send message
 					const message = {
-						emitter : user.id,
-						type : 'text',
-						data : this.message.value,
-						time : new Date().toString()
+						emitter: user.id,
+						type: 'text',
+						data: this.message.value,
+						time: new Date().toString()
 					};
 					call.channel.send(JSON.stringify(message));
 					//update ui
@@ -184,7 +184,7 @@ window.addEventListener(
 					//call may not have been accepted by the recipient yet
 					if(call.peer.connectionState !== 'connected') {
 						//in this case, a message must be send through signalisation server to warn the recipient that the call is no longer valid
-						socket.sendObject({type : 'call', action : 'cancel', recipient : call.recipient, call : sanitize_call(call)});
+						socket.sendObject({type: 'call', action: 'cancel', recipient: call.recipient, call: sanitize_call(call)});
 					}
 					//in any case, close what must be closed and delete the call
 					document.querySelector(`div[data-call-id="${call.id}"]`).remove();
@@ -218,16 +218,16 @@ window.addEventListener(
 		//TODO make a real class with properties not serialized
 		function sanitize_call(call) {
 			return {
-				id : call.id,
-				caller : call.caller,
-				recipient : call.recipient,
-				time : call.time,
-				files : []
+				id: call.id,
+				caller: call.caller,
+				recipient: call.recipient,
+				time: call.time,
+				files: []
 			};
 		}
 
 		function create_user(user) {
-			const li = document.createFullElement('li', {'data-user-id' : user.id}, user.name);
+			const li = document.createFullElement('li', {'data-user-id': user.id}, user.name);
 			li.addEventListener('click', user_call);
 			return li;
 		}
@@ -251,7 +251,7 @@ window.addEventListener(
 									//disable ui
 									document.querySelector(`div[data-call-id="${call.id}"]`).remove();
 									//show message
-									UI.ShowError(get_username(call.recipient) + ' declined your call', 3000);
+									UI.ShowError(`${get_username(call.recipient)} declined your call`, 3000);
 								}
 								if(signal.action === 'cancel') {
 									const call = calls.find(c => c.id === signal.call.id);
@@ -297,7 +297,7 @@ window.addEventListener(
 										function() {
 											incoming_call_ui.remove();
 											calls.removeElement(call);
-											socket.sendObject({type : 'call', action : 'decline', recipient : call.caller, call : sanitize_call(call)});
+											socket.sendObject({type: 'call', action: 'decline', recipient: call.caller, call: sanitize_call(call)});
 										}
 									);
 									incoming_call_ui.querySelector('button[data-action="answer"]').addEventListener(
@@ -376,7 +376,7 @@ window.addEventListener(
 				'open',
 				function() {
 					//send a hello message
-					socket.sendObject({type : 'connection', action : 'login', user : user});
+					socket.sendObject({type: 'connection', action: 'login', user: user});
 					//update ui
 					document.getElementById('server').textContent = server;
 					document.getElementById('username').textContent = user.name;
@@ -442,12 +442,12 @@ window.addEventListener(
 
 		function place_call(user_id) {
 			const call = {
-				id : UUID.Generate(),
-				is_caller : true,
-				caller : user.id,
-				recipient : user_id,
-				time : new Date().getTime(),
-				files : []
+				id: UUID.Generate(),
+				is_caller: true,
+				caller: user.id,
+				recipient: user_id,
+				time: new Date().getTime(),
+				files: []
 			};
 			add_peer(call);
 			add_data_channel(call);
@@ -456,13 +456,13 @@ window.addEventListener(
 		}
 
 		function add_peer(call) {
-			const peer = new RTCPeerConnection({iceServers : [{urls : ['stun:stun.l.google.com:19302']}]});
+			const peer = new RTCPeerConnection({iceServers: [{urls: ['stun:stun.l.google.com:19302']}]});
 			peer.onicecandidate = function(event) {
 				if(event.candidate !== null) {
 					console.log('on peer ice candidate', event);
 					//only caller choose ice candidate
 					if(call.is_caller) {
-						socket.sendObject({type : 'call', candidate : event.candidate, recipient : call.recipient, call : sanitize_call(call)});
+						socket.sendObject({type: 'call', candidate: event.candidate, recipient: call.recipient, call: sanitize_call(call)});
 						//multiple ICE candidates are usually found, only one is needed
 						peer.onicecandidate = null;
 					}
@@ -489,7 +489,7 @@ window.addEventListener(
 				console.log('on peer got description', description);
 				call.peer.setLocalDescription(description);
 				//send sdp description to penpal
-				socket.sendObject({type : 'call', sdp : description, recipient : call.is_caller ? call.recipient : call.caller, call : sanitize_call(call)});
+				socket.sendObject({type: 'call', sdp: description, recipient: call.is_caller ? call.recipient : call.caller, call: sanitize_call(call)});
 			}
 
 			function peer_didnt_get_description() {
@@ -529,18 +529,18 @@ window.addEventListener(
 				//create download link when the whole file has been transferred
 				if(current_size === file.size) {
 					channel.close();
-					const blob = new Blob(file.parts, {type : file.type});
+					const blob = new Blob(file.parts, {type: file.type});
 					const url = URL.createObjectURL(blob);
 					//remove progress bar
 					progress.parentNode.removeChild(progress);
 					//update message text and add link download file
 					const message_ui_message = file_ui.querySelector('span.message');
 					message_ui_message.textContent = `File ${file.name} transferred`;
-					const message_download_file = document.createFullElement('a', {href : url, download : file.name, style : 'margin-left: 5px;'}, 'Download');
+					const message_download_file = document.createFullElement('a', {href: url, download: file.name, style: 'margin-left: 5px;'}, 'Download');
 					message_ui_message.appendChild(message_download_file);
 					//do something with well known mime type
 					if(file.type.includes('image')) {
-						const message_image = document.createFullElement('img', {src : url, alt : file.name, title : file.name});
+						const message_image = document.createFullElement('img', {src: url, alt: file.name, title: file.name});
 						message_ui_message.appendChild(message_image);
 					}
 				}
@@ -563,10 +563,10 @@ window.addEventListener(
 				//keep a hook on file message ui
 				if(message.type === 'file') {
 					call.files[message.fileid] = {
-						name : message.filename,
-						type : message.filetype,
-						size : message.filesize,
-						parts : []
+						name: message.filename,
+						type: message.filetype,
+						size: message.filesize,
+						parts: []
 					};
 				}
 				const message_ui = draw_message(message);
