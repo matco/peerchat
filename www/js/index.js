@@ -1,3 +1,6 @@
+import './tools/extension.js';
+import './tools/dom_extension.js';
+
 import {UUID} from './tools/uuid.js';
 import {UI} from './ui.js';
 
@@ -40,12 +43,12 @@ window.addEventListener(
 		document.getElementById('connect')['username'].value = user.name;
 
 		function dragover(event) {
-			Event.stop(event);
+			event.stop();
 			this.style.backgroundColor = '#ddd';
 		}
 
 		function dragend(event) {
-			Event.stop(event);
+			event.stop();
 			this.style.backgroundColor = '';
 		}
 
@@ -164,7 +167,7 @@ window.addEventListener(
 			call_ui.querySelector('form').addEventListener(
 				'submit',
 				function(event) {
-					Event.stop(event);
+					event.stop();
 					//send message
 					const message = {
 						emitter: user.id,
@@ -343,10 +346,11 @@ window.addEventListener(
 						}
 						//connection related messages
 						case 'connection': {
+							console.log(signal);
 							//all current users
 							if(signal.hasOwnProperty('users')) {
 								users.pushAll(signal.users);
-								signal.users.map(create_user).forEach(Node.prototype.appendChild, document.getElementById('users').clear());
+								signal.users.map(create_user).forEach(Node.prototype.appendChild, document.getElementById('users').empty());
 							}
 							else if(signal.hasOwnProperty('user')) {
 								const users_ui = document.getElementById('users');
@@ -425,7 +429,7 @@ window.addEventListener(
 		document.getElementById('connect').addEventListener(
 			'submit',
 			function(event) {
-				Event.stop(event);
+				event.stop();
 				server = this['server'].value;
 				user.name = this['username'].value;
 				connect_signalisation();
