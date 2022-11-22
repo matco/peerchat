@@ -1,30 +1,40 @@
 {
 	"env": {
 		"browser": true,
-		"es2020": true,
+		"es2022": true,
 		"node": true
 	},
-	"extends": "eslint:recommended",
+	"extends": ["eslint:recommended"],
 	"parserOptions": {
-		"ecmaVersion": 2020,
+		"ecmaVersion": "latest",
+		"requireConfigFile": false,
 		"sourceType": "module"
 	},
+	"plugins": [],
 	"rules": {
-		"no-console": "off",
-		"no-new-wrappers": "error",
-		"no-proto": "error",
-		"no-with": "error",
-		"no-undef": "error",
-		"no-multi-spaces": "error",
-		"no-var": "error",
-		"no-prototype-builtins": "off",
 		"array-callback-return": "error",
 		"consistent-return": "error",
-		"prefer-const": "error",
 		"curly": "error",
+		"eol-last": "error",
 		"eqeqeq": "error",
+		"indent": ["error", "tab", {"SwitchCase": 1}],
+		"key-spacing": "error",
+		"linebreak-style": ["error", "unix"],
+		"no-console": "off",
+		"no-multi-spaces": "error",
+		"no-multiple-empty-lines": "error",
+		"no-new-wrappers": "error",
+		"no-proto": "error",
+		"no-prototype-builtins": "off",
+		"no-undef": "error",
+		"no-var": "error",
+		"no-with": "error",
+		"prefer-const": "error",
+		"prefer-template": "error",
 		"quotes": ["error", "single"],
 		"semi": ["error", "always"],
-		"indent": ["error", "tab", {"SwitchCase": 1}]
+		"spaced-comment": ["error", "never"],
+		"strict": "error",
+		"template-curly-spacing": ["error", "never"]
 	}
 }
