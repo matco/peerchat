@@ -22,9 +22,9 @@
 	},
 	"dependencies": {
 		"node-static": "^0.7.11",
-		"ws": "^7.4.5"
+		"ws": "^7.5.9"
 	},
 	"devDependencies": {
-		"eslint": "^7.26.0"
+		"eslint": "^8.27.0"
 	}
 }
