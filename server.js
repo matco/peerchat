@@ -1,30 +1,24 @@
-const http = require('http');
-const node_static = require('node-static');
-const ws = require('ws');
+import './www/js/tools/extension.js';
+
+import {createServer} from 'http';
+import {Server} from 'node-static';
+import {WebSocketServer} from 'ws';
 
 const PORT = process.env.PORT || 1337;
 
 const peers = [];
 
-//prototype
-Array.prototype.removeElement = function(element) {
-	const index = this.indexOf(element);
-	if(index !== -1) {
-		this.splice(index, 1);
-	}
-};
-
-const file = new node_static.Server('./www');
+const file = new Server('./www');
 
 //create http server
-const http_server = http.createServer(function(request, response) {
+const http_server = createServer(function(request, response) {
 	request.addListener('end', function() {
 		file.serve(request, response);
 	}).resume();
 }).listen(PORT);
 
 //create websocket server
-const websocket_server = new ws.Server({server: http_server});
+const websocket_server = new WebSocketServer({server: http_server});
 
 function send_callback(error) {
 	if(error) {

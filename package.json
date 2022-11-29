@@ -12,6 +12,7 @@
 		"name": "Matthieu Corageoud",
 		"email": "matthieu.corageoud@gmail.com"
 	},
+	"type": "module",
 	"license": "Unlicense",
 	"repository": {
 		"type": "git",
