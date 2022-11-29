@@ -42,27 +42,24 @@ websocket_server.on('connection', function(connection) {
 	peers.push(peer);
 
 	connection.on('message', function(message) {
-		//process only text message
-		if(typeof message === 'string') {
-			console.log(`${new Date().toISOString()} Message received ${message}`);
-			const content = JSON.parse(message);
-			switch(content.type) {
-				case 'connection' : {
-					peer.user = content.user;
-					//find other peers
-					const other_peers = peers.filter(p => p.connection !== connection);
-					//return peers list to peer
-					const response = {type: 'connection', users: other_peers.map(p => p.user)};
-					connection.send(JSON.stringify(response));
-					//broadcast message to all other connected peers
-					other_peers.forEach(p => p.connection.send(message, send_callback));
-					break;
-				}
-				case 'call' : {
-					//send message to recipient peer designated in the message
-					const recipient = peers.find(p => p.user.id === content.recipient);
-					recipient.connection.send(message, send_callback);
-				}
+		console.log(`${new Date().toISOString()} Message received ${message.toString()}`);
+		const content = JSON.parse(message.toString());
+		switch(content.type) {
+			case 'connection' : {
+				peer.user = content.user;
+				//find other peers
+				const other_peers = peers.filter(p => p.connection !== connection);
+				//return peers list to peer
+				const response = {type: 'connection', users: other_peers.map(p => p.user)};
+				connection.send(JSON.stringify(response));
+				//broadcast message to all other connected peers
+				other_peers.forEach(p => p.connection.send(message, send_callback));
+				break;
+			}
+			case 'call' : {
+				//send message to recipient peer designated in the message
+				const recipient = peers.find(p => p.user.id === content.recipient);
+				recipient.connection.send(message, send_callback);
 			}
 		}
 	});

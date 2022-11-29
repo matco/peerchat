@@ -235,144 +235,150 @@ window.addEventListener(
 			return li;
 		}
 
-		function connect_signalisation() {
+		async function handle_message(data) {
+			const message = typeof data === 'string' ? data : await data.text();
+			const signal = JSON.parse(message);
+			console.log('signalisation message received', signal);
+			switch(signal.type) {
+				//call related messages
+				case 'call': {
+					//call can be an incoming call or information about an occurring call
+					if(signal.hasOwnProperty('action')) {
+						if(signal.action === 'decline') {
+							const call = calls.find(c => c.id === signal.call.id);
+							calls.removeElement(call);
+							//disable ui
+							document.querySelector(`div[data-call-id="${call.id}"]`).remove();
+							//show message
+							UI.ShowError(`${get_username(call.recipient)} declined your call`, 3000);
+						}
+						if(signal.action === 'cancel') {
+							const call = calls.find(c => c.id === signal.call.id);
+							//call may have already been terminated when data channel has been closed
+							if(call) {
+								calls.removeElement(call);
+								//remove ui
+								document.querySelector(`div[data-call-id="${call.id}"]`).remove();
+							}
+						}
+					}
+					else if(signal.hasOwnProperty('sdp')) {
+						const call = calls.find(c => c.id === signal.call.id);
+						//only caller needs to set remove description here
+						if(call) {
+							if(call.caller === user.id) {
+								call.peer.setRemoteDescription(
+									new RTCSessionDescription(signal.sdp),
+									function() {
+										//nothing to do in this case
+									},
+									function(error) {
+										console.log(error);
+									}
+								);
+								//activate ui
+								document.querySelector(`div[data-call-id="${call.id}"]`).querySelectorAll('input,button').forEach(e => e.removeAttribute('disabled'));
+							}
+						}
+						else {
+							//console.log(exception);
+							const call = signal.call;
+							call.is_caller = false;
+							call.sdp = signal.sdp;
+							//add call to call list
+							calls.push(call);
+							//find username
+							const incoming_call_ui = document.importNode(document.getElementById('incoming_call').content.firstElementChild, true);
+							incoming_call_ui.dataset.callId = call.id;
+							incoming_call_ui.querySelector('[data-binding="incoming-call-username"]').textContent = get_username(signal.call.caller);
+							incoming_call_ui.querySelector('button[data-action="decline"]').addEventListener(
+								'click',
+								function() {
+									incoming_call_ui.remove();
+									calls.removeElement(call);
+									socket.sendObject({type: 'call', action: 'decline', recipient: call.caller, call: sanitize_call(call)});
+								}
+							);
+							incoming_call_ui.querySelector('button[data-action="answer"]').addEventListener(
+								'click',
+								function() {
+									incoming_call_ui.remove();
+									//create peer
+									add_peer(call);
+									//setRemoteDescription (RTCSessionDescription description, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
+									call.peer.setRemoteDescription(
+										new RTCSessionDescription(call.sdp),
+										function() {
+											add_data_channel(call);
+										},
+										function(error) {
+											console.log(error);
+										}
+									);
+									//add ice candidate if it has already been received
+									if(call.candidate) {
+										call.peer.addIceCandidate(call.candidate);
+									}
+								}
+							);
+							document.body.appendChild(incoming_call_ui);
+						}
+					}
+					//ice candidate
+					else if(signal.hasOwnProperty('candidate')) {
+						const candidate = new RTCIceCandidate(signal.candidate);
+						//find associated call
+						const call = calls.find(c => c.id === signal.call.id);
+						//call may have already been answered
+						if(call.peer) {
+							call.peer.addIceCandidate(candidate);
+						}
+						//if call has not been answered, candidate is stored temporarily in the call
+						else {
+							call.candidate = candidate;
+						}
+					}
+					break;
+				}
+				//connection related messages
+				case 'connection': {
+					//all current users
+					if(signal.hasOwnProperty('users')) {
+						users.pushAll(signal.users);
+						signal.users.map(create_user).forEach(Node.prototype.appendChild, document.getElementById('users').empty());
+					}
+					else if(signal.hasOwnProperty('user')) {
+						const users_ui = document.getElementById('users');
+						//arriving user
+						if(signal.action === 'login') {
+							users.push(signal.user);
+							users_ui.appendChild(create_user(signal.user));
+							UI.Notify(`${signal.user.name} logged in`);
+						}
+						//leaving user
+						else {
+							users.removeElement(signal.user);
+							users_ui.querySelector(`[data-user-id="${signal.user.id}"]`).remove();
+							UI.Notify(`${signal.user.name} left`);
+						}
+					}
+					break;
+				}
+				//unknown messages
+				default:
+					console.error('Unknown type of message');
+			}
+		}
 
+		function connect_signalisation() {
 			socket = new WebSocket(server);
 			socket.addEventListener(
 				'message',
 				function(event) {
-					const signal = JSON.parse(event.data);
-					console.log('signalisation message received', signal);
-					switch(signal.type) {
-						//call related messages
-						case 'call': {
-							//call can be an incoming call or information about an occurring call
-							if(signal.hasOwnProperty('action')) {
-								if(signal.action === 'decline') {
-									const call = calls.find(c => c.id === signal.call.id);
-									calls.removeElement(call);
-									//disable ui
-									document.querySelector(`div[data-call-id="${call.id}"]`).remove();
-									//show message
-									UI.ShowError(`${get_username(call.recipient)} declined your call`, 3000);
-								}
-								if(signal.action === 'cancel') {
-									const call = calls.find(c => c.id === signal.call.id);
-									//call may have already been terminated when data channel has been closed
-									if(call) {
-										calls.removeElement(call);
-										//remove ui
-										document.querySelector(`div[data-call-id="${call.id}"]`).remove();
-									}
-								}
-							}
-							else if(signal.hasOwnProperty('sdp')) {
-								const call = calls.find(c => c.id === signal.call.id);
-								//only caller needs to set remove description here
-								if(call) {
-									if(call.caller === user.id) {
-										call.peer.setRemoteDescription(
-											new RTCSessionDescription(signal.sdp),
-											function() {
-												//nothing to do in this case
-											},
-											function(error) {
-												console.log(error);
-											}
-										);
-										//activate ui
-										document.querySelector(`div[data-call-id="${call.id}"]`).querySelectorAll('input,button').forEach(e => e.removeAttribute('disabled'));
-									}
-								}
-								else {
-									//console.log(exception);
-									const call = signal.call;
-									call.is_caller = false;
-									call.sdp = signal.sdp;
-									//add call to call list
-									calls.push(call);
-									//find username
-									const incoming_call_ui = document.importNode(document.getElementById('incoming_call').content.firstElementChild, true);
-									incoming_call_ui.dataset.callId = call.id;
-									incoming_call_ui.querySelector('[data-binding="incoming-call-username"]').textContent = get_username(signal.call.caller);
-									incoming_call_ui.querySelector('button[data-action="decline"]').addEventListener(
-										'click',
-										function() {
-											incoming_call_ui.remove();
-											calls.removeElement(call);
-											socket.sendObject({type: 'call', action: 'decline', recipient: call.caller, call: sanitize_call(call)});
-										}
-									);
-									incoming_call_ui.querySelector('button[data-action="answer"]').addEventListener(
-										'click',
-										function() {
-											incoming_call_ui.remove();
-											//create peer
-											add_peer(call);
-											//setRemoteDescription (RTCSessionDescription description, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
-											call.peer.setRemoteDescription(
-												new RTCSessionDescription(call.sdp),
-												function() {
-													add_data_channel(call);
-												},
-												function(error) {
-													console.log(error);
-												}
-											);
-											//add ice candidate if it has already been received
-											if(call.candidate) {
-												call.peer.addIceCandidate(call.candidate);
-											}
-										}
-									);
-									document.body.appendChild(incoming_call_ui);
-								}
-							}
-							//ice candidate
-							else if(signal.hasOwnProperty('candidate')) {
-								const candidate = new RTCIceCandidate(signal.candidate);
-								//find associated call
-								const call = calls.find(c => c.id === signal.call.id);
-								//call may have already been answered
-								if(call.peer) {
-									call.peer.addIceCandidate(candidate);
-								}
-								//if call has not been answered, candidate is stored temporarily in the call
-								else {
-									call.candidate = candidate;
-								}
-							}
-							break;
-						}
-						//connection related messages
-						case 'connection': {
-							console.log(signal);
-							//all current users
-							if(signal.hasOwnProperty('users')) {
-								users.pushAll(signal.users);
-								signal.users.map(create_user).forEach(Node.prototype.appendChild, document.getElementById('users').empty());
-							}
-							else if(signal.hasOwnProperty('user')) {
-								const users_ui = document.getElementById('users');
-								//arriving user
-								if(signal.action === 'login') {
-									users.push(signal.user);
-									users_ui.appendChild(create_user(signal.user));
-									UI.Notify(`${signal.user.name} logged in`);
-								}
-								//leaving user
-								else {
-									users.removeElement(signal.user);
-									users_ui.querySelector(`[data-user-id="${signal.user.id}"]`).remove();
-									UI.Notify(`${signal.user.name} left`);
-								}
-							}
-							break;
-						}
-						//unknown messages
-						default:
-							console.error('Unknown type of message');
-					}
+					handle_message(event.data).catch(error => {
+						UI.ShowError('Unable to handle message.');
+						console.log(error);
+					});
 				}
 			);
 
