@@ -3,6 +3,7 @@ import './tools/dom_extension.js';
 
 import {UUID} from './tools/uuid.js';
 import {UI} from './ui.js';
+import {Call} from './call.js';
 
 const CHUNK_SIZE = 100 * 1000;
 
@@ -187,7 +188,7 @@ window.addEventListener(
 					//call may not have been accepted by the recipient yet
 					if(call.peer.connectionState !== 'connected') {
 						//in this case, a message must be send through signalisation server to warn the recipient that the call is no longer valid
-						socket.sendObject({type: 'call', action: 'cancel', recipient: call.recipient, call: sanitize_call(call)});
+						socket.sendObject({type: 'call', action: 'cancel', recipient: call.recipient, call: call.toObject()});
 					}
 					//in any case, close what must be closed and delete the call
 					document.querySelector(`div[data-call-id="${call.id}"]`).remove();
@@ -216,17 +217,6 @@ window.addEventListener(
 				const call = place_call(user.id);
 				create_call_ui(call);
 			}
-		}
-
-		//TODO make a real class with properties not serialized
-		function sanitize_call(call) {
-			return {
-				id: call.id,
-				caller: call.caller,
-				recipient: call.recipient,
-				time: call.time,
-				files: []
-			};
 		}
 
 		function create_user(user) {
@@ -264,7 +254,7 @@ window.addEventListener(
 					}
 					else if(signal.hasOwnProperty('sdp')) {
 						const call = calls.find(c => c.id === signal.call.id);
-						//only caller needs to set remove description here
+						//only caller needs to set remote description here
 						if(call) {
 							if(call.caller === user.id) {
 								call.peer.setRemoteDescription(
@@ -282,8 +272,7 @@ window.addEventListener(
 						}
 						else {
 							//console.log(exception);
-							const call = signal.call;
-							call.is_caller = false;
+							const call = Call.fromObject(signal.call);
 							call.sdp = signal.sdp;
 							//add call to call list
 							calls.push(call);
@@ -296,7 +285,7 @@ window.addEventListener(
 								function() {
 									incoming_call_ui.remove();
 									calls.removeElement(call);
-									socket.sendObject({type: 'call', action: 'decline', recipient: call.caller, call: sanitize_call(call)});
+									socket.sendObject({type: 'call', action: 'decline', recipient: call.caller, call: call.toObject()});
 								}
 							);
 							incoming_call_ui.querySelector('button[data-action="answer"]').addEventListener(
@@ -451,14 +440,7 @@ window.addEventListener(
 		);
 
 		function place_call(user_id) {
-			const call = {
-				id: UUID.Generate(),
-				is_caller: true,
-				caller: user.id,
-				recipient: user_id,
-				time: new Date().getTime(),
-				files: []
-			};
+			const call = new Call(user.id, user_id);
 			add_peer(call);
 			add_data_channel(call);
 			calls.push(call);
@@ -471,8 +453,8 @@ window.addEventListener(
 				if(event.candidate !== null) {
 					console.log('on peer ice candidate', event);
 					//only caller choose ice candidate
-					if(call.is_caller) {
-						socket.sendObject({type: 'call', candidate: event.candidate, recipient: call.recipient, call: sanitize_call(call)});
+					if(call.isCaller) {
+						socket.sendObject({type: 'call', candidate: event.candidate, recipient: call.recipient, call: call.toObject()});
 						//multiple ICE candidates are usually found, only one is needed
 						peer.onicecandidate = null;
 					}
@@ -499,14 +481,14 @@ window.addEventListener(
 				console.log('on peer got description', description);
 				call.peer.setLocalDescription(description);
 				//send sdp description to penpal
-				socket.sendObject({type: 'call', sdp: description, recipient: call.is_caller ? call.recipient : call.caller, call: sanitize_call(call)});
+				socket.sendObject({type: 'call', sdp: description, recipient: call.isCaller ? call.recipient : call.caller, call: call.toObject()});
 			}
 
 			function peer_didnt_get_description() {
 				console.log('on peer did not get description');
 			}
 
-			if(call.is_caller) {
+			if(call.isCaller) {
 				console.log('create channel chat');
 				//channel may need to be created before the offer
 				call.channel = call.peer.createDataChannel('chat'); //, {reliable : false});
