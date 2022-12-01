@@ -179,6 +179,21 @@ input:invalid {
 .column_footer input {
 	width: 15rem;
 }
+/* call column */
+@keyframes loading {
+	from {opacity: 0.3;}
+	to {opacity: 0.7;}
+}
+.call.loading {
+	pointer-events: none;
+	animation-name: loading;
+	animation-duration: 0.8s;
+	animation-iteration-count: infinite;
+	animation-timing-function: ease-out;
+}
+.call.highlighted .column_content {
+	background-color: #ddd;
+}
 /* contact column */
 #users {
 	margin: 0;

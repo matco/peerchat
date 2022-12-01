@@ -28,12 +28,12 @@ window.addEventListener(
 
 		function dragover(event) {
 			event.stop();
-			this.style.backgroundColor = '#ddd';
+			this.classList.add('highlighted');
 		}
 
 		function dragend(event) {
 			event?.stop();
-			this.style.backgroundColor = '';
+			this.classList.remove('highlighted');
 		}
 
 		function drop(event) {
@@ -183,10 +183,11 @@ window.addEventListener(
 			//manage file drop
 			call_ui.addEventListener('dragover', dragover);
 			call_ui.addEventListener('dragend', dragend);
+			call_ui.addEventListener('dragleave', dragend);
 			call_ui.addEventListener('drop', drop);
 			//display call ui
 			document.body.appendChild(call_ui);
-			call_ui.style.opacity = '0.7';
+			call_ui.classList.add('loading');
 		}
 
 		function user_call() {
@@ -534,7 +535,7 @@ window.addEventListener(
 		function manage_channel(call) {
 			call.channel.onopen = function(event) {
 				console.log('on channel open', event);
-				document.querySelector(`div[data-call-id="${call.id}"]`).style.opacity = '1';
+				document.querySelector(`div[data-call-id="${call.id}"]`).classList.remove('loading');
 			};
 			call.channel.onmessage = function(event) {
 				const message = JSON.parse(event.data);
