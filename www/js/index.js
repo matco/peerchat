@@ -4,44 +4,30 @@ import './tools/dom_extension.js';
 import {UUID} from './tools/uuid.js';
 import {UI} from './ui.js';
 import {Call} from './call.js';
+import {Users} from './users.js';
 
 const CHUNK_SIZE = 100 * 1000;
 
 let server;
-let user;
 let socket;
-const users = [];
 const calls = [];
 
 window.addEventListener(
 	'unload',
 	function() {
-		//save user
-		sessionStorage.setObject('user', user);
+		Users.Unload();
 	}
 );
 
 window.addEventListener(
 	'load',
 	function() {
-
-		//restore user or create one
-		if(sessionStorage.getItem('user')) {
-			user = sessionStorage.getObject('user');
-		}
-		else {
-			user = {id: UUID.Generate(), name: ''};
-		}
-		users.push(user);
-
-		function get_username(user_id) {
-			return users.find(u => u.id === user_id).name;
-		}
+		Users.Load();
 
 		//fill login form
 		const secure = window.location.protocol.includes('s');
 		document.getElementById('connect')['server'].value = (secure ? 'wss://' : 'ws://') + window.location.host;
-		document.getElementById('connect')['username'].value = user.name;
+		document.getElementById('connect')['username'].value = Users.GetCurrentUser().name;
 
 		function dragover(event) {
 			event.stop();
@@ -63,7 +49,7 @@ window.addEventListener(
 				const file_channel = call.peer.createDataChannel(fileid);
 				call.files.push({channel: file_channel});
 				const message = {
-					emitter: user.id,
+					emitter: Users.GetCurrentUser().id,
 					type: 'file',
 					fileid: fileid,
 					filename: file.name,
@@ -135,8 +121,8 @@ window.addEventListener(
 			const time = new Date(message.time);
 			const message_date_text = `${time.getHours().pad(2)}:${time.getMinutes().pad(2)}:${time.getSeconds().pad(2)}`;
 			message_ui.appendChild(document.createFullElement('time', {}, message_date_text));
-			const is_emitter = message.emitter === user.id;
-			const user_name = is_emitter ? 'You' : get_username(message.emitter);
+			const is_emitter = message.emitter === Users.GetCurrentUser().id;
+			const user_name = is_emitter ? 'You' : Users.GetUser(message.emitter).name;
 			message_ui.appendChild(document.createFullElement('span', {'class': 'user'}, user_name));
 			//file message
 			if(message.type === 'file') {
@@ -163,15 +149,15 @@ window.addEventListener(
 			const call_ui = document.importNode(document.getElementById('call').content.firstElementChild, true);
 			call_ui.dataset.callId = call.id;
 			//find penpal
-			const penpal_id = user.id === call.caller ? call.recipient : call.caller;
-			call_ui.querySelector('[data-binding="call-username"]').textContent = get_username(penpal_id);
+			const penpal_id = Users.GetCurrentUser().id === call.caller ? call.recipient : call.caller;
+			call_ui.querySelector('[data-binding="call-username"]').textContent = Users.GetUser(penpal_id).name;
 			call_ui.querySelector('form').addEventListener(
 				'submit',
 				function(event) {
 					event.stop();
 					//send message
 					const message = {
-						emitter: user.id,
+						emitter: Users.GetCurrentUser().id,
 						type: 'text',
 						data: this.message.value,
 						time: new Date().toString()
@@ -208,7 +194,7 @@ window.addEventListener(
 
 		function user_call() {
 			//check if there is not already an existing call with this user
-			const user = users.find(u => u.id === this.dataset.userId);
+			const user = Users.GetUser(this.dataset.userId);
 			const existing_call = calls.some(c => c.caller === user.id || c.recipient === user.id);
 			if(existing_call) {
 				UI.ShowError(`You're already chatting with ${user.name}`, 3000);
@@ -229,6 +215,7 @@ window.addEventListener(
 			const message = typeof data === 'string' ? data : await data.text();
 			const signal = JSON.parse(message);
 			console.log('signalisation message received', signal);
+			const user = Users.GetCurrentUser();
 			switch(signal.type) {
 				//call related messages
 				case 'call': {
@@ -240,7 +227,7 @@ window.addEventListener(
 							//disable ui
 							document.querySelector(`div[data-call-id="${call.id}"]`).remove();
 							//show message
-							UI.ShowError(`${get_username(call.recipient)} declined your call`, 3000);
+							UI.ShowError(`${Users.GetUser(call.recipient).name} declined your call`, 3000);
 						}
 						if(signal.action === 'cancel') {
 							const call = calls.find(c => c.id === signal.call.id);
@@ -279,7 +266,7 @@ window.addEventListener(
 							//find username
 							const incoming_call_ui = document.importNode(document.getElementById('incoming_call').content.firstElementChild, true);
 							incoming_call_ui.dataset.callId = call.id;
-							incoming_call_ui.querySelector('[data-binding="incoming-call-username"]').textContent = get_username(signal.call.caller);
+							incoming_call_ui.querySelector('[data-binding="incoming-call-username"]').textContent = Users.GetUser(signal.call.caller).name;
 							incoming_call_ui.querySelector('button[data-action="decline"]').addEventListener(
 								'click',
 								function() {
@@ -333,20 +320,20 @@ window.addEventListener(
 				case 'connection': {
 					//all current users
 					if(signal.hasOwnProperty('users')) {
-						users.pushAll(signal.users);
+						Users.AddUsers(signal.users);
 						signal.users.map(create_user).forEach(Node.prototype.appendChild, document.getElementById('users').empty());
 					}
 					else if(signal.hasOwnProperty('user')) {
 						const users_ui = document.getElementById('users');
 						//arriving user
 						if(signal.action === 'login') {
-							users.push(signal.user);
+							Users.AddUser(signal.user);
 							users_ui.appendChild(create_user(signal.user));
 							UI.Notify(`${signal.user.name} logged in`);
 						}
 						//leaving user
 						else {
-							users.removeElement(signal.user);
+							Users.RemoveUser(signal.user);
 							users_ui.querySelector(`[data-user-id="${signal.user.id}"]`).remove();
 							UI.Notify(`${signal.user.name} left`);
 						}
@@ -374,6 +361,7 @@ window.addEventListener(
 			socket.addEventListener(
 				'open',
 				function() {
+					const user = Users.GetCurrentUser();
 					//send a hello message
 					socket.sendObject({type: 'connection', action: 'login', user: user});
 					//update ui
@@ -408,7 +396,7 @@ window.addEventListener(
 						document.querySelector(`div[data-call-id="${call.id}"]`).remove();
 					});
 					calls.length = 0;
-					users.length = 0;
+					Users.Reset();
 					//update ui
 					document.getElementById('contacts').style.display = 'none';
 					document.querySelector('header').style.display = 'none';
@@ -426,7 +414,7 @@ window.addEventListener(
 			function(event) {
 				event.stop();
 				server = this['server'].value;
-				user.name = this['username'].value;
+				Users.GetCurrentUser().name = this['username'].value;
 				connect_signalisation();
 			}
 		);
@@ -440,6 +428,7 @@ window.addEventListener(
 		);
 
 		function place_call(user_id) {
+			const user = Users.GetCurrentUser();
 			const call = new Call(user.id, user_id);
 			add_peer(call);
 			add_data_channel(call);
@@ -566,6 +555,7 @@ window.addEventListener(
 				//document.getElementById(call.id).querySelector('[data-binding="call-loading"]').style.visibility = 'hidden';
 			};
 			call.channel.onclose = function(event) {
+				const user = Users.GetCurrentUser();
 				console.log('on channel close', event);
 				//disable ui
 				const call_ui = document.querySelector(`div[data-call-id="${call.id}"]`);
@@ -574,7 +564,7 @@ window.addEventListener(
 					call_ui.querySelectorAll('input,button').forEach(e => e.setAttribute('disabled', 'disabled'));
 					//show message
 					const penpal_id = user.id === call.caller ? call.recipient : call.caller;
-					UI.ShowError(`${get_username(penpal_id)} ended the call`, 5000);
+					UI.ShowError(`${Users.GetUser(penpal_id).name} ended the call`, 5000);
 				}
 			};
 		}
