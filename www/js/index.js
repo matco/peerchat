@@ -32,7 +32,7 @@ window.addEventListener(
 		}
 
 		function dragend(event) {
-			event?.stop();
+			event.stop();
 			this.classList.remove('highlighted');
 		}
 
@@ -73,7 +73,7 @@ window.addEventListener(
 					}
 				);
 			}
-			dragend.call(this);
+			this.classList.remove('highlighted');
 		}
 
 		function send_file(channel, file, offset, progression_callback, final_callback) {
