@@ -35,7 +35,7 @@ window.addEventListener(
 		}
 
 		function dragend(event) {
-			event.stop();
+			event?.stop();
 			this.style.backgroundColor = '';
 		}
 
