@@ -8,7 +8,6 @@ import {Users} from './users.js';
 
 const CHUNK_SIZE = 100 * 1000;
 
-let server;
 let socket;
 const calls = [];
 
@@ -25,8 +24,6 @@ window.addEventListener(
 		Users.Load();
 
 		//fill login form
-		const secure = window.location.protocol.includes('s');
-		document.getElementById('connect')['server'].value = (secure ? 'wss://' : 'ws://') + window.location.host;
 		document.getElementById('connect')['username'].value = Users.GetCurrentUser().name;
 
 		function dragover(event) {
@@ -347,6 +344,8 @@ window.addEventListener(
 		}
 
 		function connect_signalisation() {
+			const secure = window.location.protocol.includes('s');
+			const server = `${secure ? 'wss://' : 'ws://'}${window.location.host}`;
 			socket = new WebSocket(server);
 			socket.addEventListener(
 				'message',
@@ -365,7 +364,6 @@ window.addEventListener(
 					//send a hello message
 					socket.sendObject({type: 'connection', action: 'login', user: user});
 					//update ui
-					document.getElementById('server').textContent = server;
 					document.getElementById('username').textContent = user.name;
 					document.getElementById('connect').style.display = 'none';
 					document.querySelector('header').style.display = 'block';
@@ -413,7 +411,6 @@ window.addEventListener(
 			'submit',
 			function(event) {
 				event.stop();
-				server = this['server'].value;
 				Users.GetCurrentUser().name = this['username'].value;
 				connect_signalisation();
 			}
