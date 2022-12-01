@@ -367,7 +367,7 @@ window.addEventListener(
 					document.getElementById('username').textContent = user.name;
 					document.getElementById('connect').style.display = 'none';
 					document.querySelector('header').style.display = 'block';
-					document.getElementById('contacts').style.display = 'block';
+					document.getElementById('people').style.display = 'block';
 				}
 			);
 
@@ -396,7 +396,7 @@ window.addEventListener(
 					calls.length = 0;
 					Users.Reset();
 					//update ui
-					document.getElementById('contacts').style.display = 'none';
+					document.getElementById('people').style.display = 'none';
 					document.querySelector('header').style.display = 'none';
 					document.getElementById('connect').style.display = 'block';
 				}
