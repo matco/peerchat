@@ -1,5 +1,6 @@
 import './tools/extension.js';
 import './tools/dom_extension.js';
+import './custom_dom_extension.js';
 
 import {UUID} from './tools/uuid.js';
 import {UI} from './ui.js';
@@ -402,10 +403,6 @@ window.addEventListener(
 					document.getElementById('connect').style.display = 'block';
 				}
 			);
-
-			socket.sendObject = function(message) {
-				this.send(JSON.stringify(message));
-			};
 		}
 
 		document.getElementById('connect').addEventListener(
